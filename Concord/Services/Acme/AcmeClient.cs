@@ -185,9 +185,19 @@ internal sealed class AcmeClient(
         var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
         var payload = new { termsOfServiceAgreed = true, contact = Array.Empty<string>() };
         var jws = await BuildJwsAsync(dir.NewAccount, key, kid: null, payload, dir, ct);
-        var msg = new HttpRequestMessage(HttpMethod.Post, dir.NewAccount) { Content = new StringContent(jws, Encoding.UTF8, "application/jose+json") };
+        var msg = new HttpRequestMessage(HttpMethod.Post, dir.NewAccount) { Content = JoseJson(jws) };
         var res = await http.SendAsync(msg, ct);
-        res.EnsureSuccessStatusCode();
+        try
+        {
+            res.EnsureSuccessStatusCode();
+        }
+        catch (Exception)
+        {
+            var errorBody = await res.Content.ReadAsStringAsync(ct);
+            logger.LogError("ACME newAccount failed: {Status} {Body}", (int)res.StatusCode, errorBody);
+            throw;
+        }
+
         _kid = res.Headers.Location?.ToString();
         if (_kid is null && res.Headers.TryGetValues("Location", out var vals))
         {
@@ -202,8 +212,13 @@ internal sealed class AcmeClient(
     {
         var dir = await GetDirectoryAsync(ct);
         var jws = await BuildJwsAsync(url, key, kid, payload, dir, ct);
-        var res = await http.PostAsync(url, new StringContent(jws, Encoding.UTF8, "application/jose+json"), ct);
-        res.EnsureSuccessStatusCode();
+        var res = await http.PostAsync(url, JoseJson(jws), ct);
+        if (!res.IsSuccessStatusCode)
+        {
+            var body = await res.Content.ReadAsStringAsync(ct);
+            logger.LogError("ACME POST failed: {Url} {Status} {Body}", url, (int)res.StatusCode, body);
+            res.EnsureSuccessStatusCode();
+        }
         _lastLocation = res.Headers.Location?.ToString();
         if (_lastLocation is null && res.Headers.TryGetValues("Location", out var vals))
             _lastLocation = vals.FirstOrDefault();
@@ -215,9 +230,14 @@ internal sealed class AcmeClient(
     {
         var dir = await GetDirectoryAsync(ct);
         var jws = await BuildJwsAsync(url, key, kid, string.Empty, dir, ct);
-        var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(jws, Encoding.UTF8, "application/jose+json") };
+        var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JoseJson(jws) };
         var res = await http.SendAsync(req, ct);
-        res.EnsureSuccessStatusCode();
+        if (!res.IsSuccessStatusCode)
+        {
+            var body = await res.Content.ReadAsStringAsync(ct);
+            logger.LogError("ACME POST-as-GET failed: {Url} {Status} {Body}", url, (int)res.StatusCode, body);
+            res.EnsureSuccessStatusCode();
+        }
         _nonce = res.Headers.TryGetValues("Replay-Nonce", out var n) ? n.FirstOrDefault() : null;
         return await res.Content.ReadAsStringAsync(ct);
     }
@@ -272,5 +292,13 @@ internal sealed class AcmeClient(
         if (finish < 0) throw new InvalidOperationException("Malformed PEM");
         finish += end.Length;
         return pem.Substring(start, finish - start);
+    }
+
+    private static StringContent JoseJson(string body)
+    {
+        // Some servers are strict: ACME requires Content-Type: application/jose+json
+        var content = new StringContent(body, Encoding.UTF8);
+        content.Headers.ContentType = new MediaTypeHeaderValue("application/jose+json");
+        return content;
     }
 }
