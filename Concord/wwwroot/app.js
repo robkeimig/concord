@@ -14,6 +14,10 @@ const rtcConfig = {
     iceServers: [{ urls: "stun:stun.l.google.com:19302" }]
 };
 
+// Sender tuning (screen-share)
+const SCREEN_SENDER_MAX_BITRATE_BPS = 20_000_000; // ~2.5 Mbps starting point
+const SCREEN_SENDER_MAX_FRAMERATE = 60;
+
 let selfId = null;
 let isStreaming = false;
 let localStream = null;
@@ -64,11 +68,9 @@ ws.onmessage = async (event) => {
 
         case "peer-left":
             if (msg.clientId) {
-                // If the peer we were viewing left, tear down
                 if (msg.clientId === viewingPeerId) {
                     await disconnectViewer();
                 }
-                // If a viewer left while we are streaming, drop their PC
                 await closeStreamerPc(msg.clientId);
             }
             break;
@@ -142,11 +144,27 @@ function wireCommonPcHandlers(pc, peerId, { isViewer }) {
     };
 
     pc.ontrack = e => {
-        // Only the viewer attaches remote media to the remote <video>
         if (isViewer) {
             remoteVideo.srcObject = e.streams[0];
         }
     };
+}
+
+function applyScreenSenderTuning(sender) {
+    if (!sender || !sender.track || sender.track.kind !== "video") return;
+
+    const params = sender.getParameters();
+    params.encodings ??= [{}];
+
+    // Prefer maintaining framerate under constrained bandwidth.
+    params.degradationPreference = "maintain-framerate-and-resolution";
+
+    // Conservative defaults to reduce jitter on typical consumer links.
+    params.encodings[0].maxBitrate = SCREEN_SENDER_MAX_BITRATE_BPS;
+    params.encodings[0].maxFramerate = SCREEN_SENDER_MAX_FRAMERATE;
+
+    // Some browsers reject unsupported parameter combinations; ignore failures.
+    sender.setParameters(params).catch(() => { });
 }
 
 async function createViewerPc(peerId) {
@@ -154,9 +172,6 @@ async function createViewerPc(peerId) {
 
     viewerPc = new RTCPeerConnection(rtcConfig);
     wireCommonPcHandlers(viewerPc, peerId, { isViewer: true });
-
-    // Viewer is recvonly; do not add local tracks.
-    // (If later you want audio chat etc, you add tracks here.)
 
     return viewerPc;
 }
@@ -168,10 +183,10 @@ async function createStreamerPc(viewerId) {
     pc = new RTCPeerConnection(rtcConfig);
     wireCommonPcHandlers(pc, viewerId, { isViewer: false });
 
-    // As streamer, send our display tracks to this viewer.
     if (localStream) {
         for (const track of localStream.getTracks()) {
-            pc.addTrack(track, localStream);
+            const sender = pc.addTrack(track, localStream);
+            applyScreenSenderTuning(sender);
         }
     }
 
@@ -281,7 +296,9 @@ shareBtn.onclick = async () => {
     if (isStreaming) return;
 
     localStream = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 60, max: 60 } },
+        video: {
+            frameRate: { ideal: SCREEN_SENDER_MAX_FRAMERATE, max: SCREEN_SENDER_MAX_FRAMERATE }
+        },
         audio: false
     });
 
