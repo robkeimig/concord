@@ -59,15 +59,15 @@ internal sealed class AcmeClient(
     public async Task<X509Certificate2> EnsureIpCertificateAsync(string ip, CancellationToken ct)
     {
         // Load existing cert? Always reissue per requirements.
-        // 6-day profile: set notAfter to now+6d.
         var dir = await GetDirectoryAsync(ct);
         using var acctKey = await GetOrCreateAccountKeyAsync(dir, ct);
 
         // Create order for IP identifier
+        // NOTE: Let's Encrypt does not support notBefore/notAfter in newOrder.
         var order = await PostAsJwsAsync(dir.NewOrder, acctKey, kid: await GetKidAsync(ct), new OrderPayload(
             new[] { new Identifier("ip", ip) },
             null,
-            DateTimeOffset.UtcNow.AddDays(6).ToString("o")
+            null
         ), ct);
         var orderLoc = _lastLocation!;
         var orderObj = JsonDocument.Parse(order);
@@ -160,13 +160,16 @@ internal sealed class AcmeClient(
 
     private async Task<string> GetNonceAsync(string newNonceUrl, CancellationToken ct)
     {
-        if (_nonce is not null) return _nonce;
+        // Always fetch a fresh nonce. Let's Encrypt can reject reused/non-current nonces.
         var req = new HttpRequestMessage(HttpMethod.Head, newNonceUrl);
         var res = await http.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
         _nonce = res.Headers.GetValues("Replay-Nonce").First();
         return _nonce;
     }
+
+    private static string? TryGetReplayNonce(HttpResponseMessage res)
+        => res.Headers.TryGetValues("Replay-Nonce", out var vals) ? vals.FirstOrDefault() : null;
 
     private Task<string> GetKidAsync(CancellationToken ct)
     {
@@ -211,42 +214,66 @@ internal sealed class AcmeClient(
     private async Task<string> PostAsJwsAsync(string url, ECDsa key, string kid, object payload, CancellationToken ct)
     {
         var dir = await GetDirectoryAsync(ct);
-        var jws = await BuildJwsAsync(url, key, kid, payload, dir, ct);
-        var res = await http.PostAsync(url, JoseJson(jws), ct);
-        if (!res.IsSuccessStatusCode)
+
+        for (var attempt = 0; attempt < 2; attempt++)
         {
+            var jws = await BuildJwsAsync(url, key, kid, payload, dir, ct);
+            var res = await http.PostAsync(url, JoseJson(jws), ct);
+            _nonce = TryGetReplayNonce(res) ?? _nonce;
+
+            if (res.IsSuccessStatusCode)
+            {
+                _lastLocation = res.Headers.Location?.ToString();
+                if (_lastLocation is null && res.Headers.TryGetValues("Location", out var vals))
+                    _lastLocation = vals.FirstOrDefault();
+                return await res.Content.ReadAsStringAsync(ct);
+            }
+
             var body = await res.Content.ReadAsStringAsync(ct);
             logger.LogError("ACME POST failed: {Url} {Status} {Body}", url, (int)res.StatusCode, body);
+
+            if (attempt == 0 && body.Contains("badNonce", StringComparison.OrdinalIgnoreCase))
+            {
+                // Clear and retry once with a fresh nonce.
+                _nonce = null;
+                continue;
+            }
+
             res.EnsureSuccessStatusCode();
         }
-        _lastLocation = res.Headers.Location?.ToString();
-        if (_lastLocation is null && res.Headers.TryGetValues("Location", out var vals))
-            _lastLocation = vals.FirstOrDefault();
-        _nonce = res.Headers.TryGetValues("Replay-Nonce", out var n) ? n.FirstOrDefault() : null;
-        return await res.Content.ReadAsStringAsync(ct);
+
+        throw new InvalidOperationException("Unreachable");
     }
 
     private async Task<string> GetAsJwsAsync(string url, ECDsa key, string kid, CancellationToken ct)
     {
         var dir = await GetDirectoryAsync(ct);
-        var jws = await BuildJwsAsync(url, key, kid, string.Empty, dir, ct);
-        var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JoseJson(jws) };
-        var res = await http.SendAsync(req, ct);
-        if (!res.IsSuccessStatusCode)
+
+        for (var attempt = 0; attempt < 2; attempt++)
         {
+            var jws = await BuildJwsAsync(url, key, kid, string.Empty, dir, ct);
+            var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = JoseJson(jws) };
+            var res = await http.SendAsync(req, ct);
+            _nonce = TryGetReplayNonce(res) ?? _nonce;
+
+            if (res.IsSuccessStatusCode)
+            {
+                return await res.Content.ReadAsStringAsync(ct);
+            }
+
             var body = await res.Content.ReadAsStringAsync(ct);
             logger.LogError("ACME POST-as-GET failed: {Url} {Status} {Body}", url, (int)res.StatusCode, body);
+
+            if (attempt == 0 && body.Contains("badNonce", StringComparison.OrdinalIgnoreCase))
+            {
+                _nonce = null;
+                continue;
+            }
+
             res.EnsureSuccessStatusCode();
         }
-        _nonce = res.Headers.TryGetValues("Replay-Nonce", out var n) ? n.FirstOrDefault() : null;
-        return await res.Content.ReadAsStringAsync(ct);
-    }
 
-    private async Task<string> GetRawAsync(string url, CancellationToken ct)
-    {
-        var res = await http.GetAsync(url, ct);
-        res.EnsureSuccessStatusCode();
-        return await res.Content.ReadAsStringAsync(ct);
+        throw new InvalidOperationException("Unreachable");
     }
 
     private async Task<string> BuildJwsAsync(string url, ECDsa key, string? kid, object payload, DirectoryIndex dir, CancellationToken ct)
@@ -300,5 +327,12 @@ internal sealed class AcmeClient(
         var content = new StringContent(body, Encoding.UTF8);
         content.Headers.ContentType = new MediaTypeHeaderValue("application/jose+json");
         return content;
+    }
+
+    private async Task<string> GetRawAsync(string url, CancellationToken ct)
+    {
+        var res = await http.GetAsync(url, ct);
+        res.EnsureSuccessStatusCode();
+        return await res.Content.ReadAsStringAsync(ct);
     }
 }
