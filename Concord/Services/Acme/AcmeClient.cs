@@ -21,6 +21,10 @@ internal sealed class AcmeClient(
 {
     private static readonly Uri DirectoryUrl = new("https://acme-v02.api.letsencrypt.org/directory");
 
+    // LetsEncrypt requires specifying an issuance profile for IP identifier orders.
+    // Allow override via env var for forward-compat.
+    private static readonly string IpCertProfile = "shortlived";
+
     private record DirectoryIndex(
         [property: JsonPropertyName("newNonce")] string NewNonce,
         [property: JsonPropertyName("newAccount")] string NewAccount,
@@ -30,7 +34,8 @@ internal sealed class AcmeClient(
     private record OrderPayload(
         [property: JsonPropertyName("identifiers")] Identifier[] Identifiers,
         [property: JsonPropertyName("notBefore")] string? NotBefore,
-        [property: JsonPropertyName("notAfter")] string? NotAfter
+        [property: JsonPropertyName("notAfter")] string? NotAfter,
+        [property: JsonPropertyName("profile")] string? Profile
     );
     private record Identifier([property: JsonPropertyName("type")] string Type, [property: JsonPropertyName("value")] string Value);
 
@@ -56,9 +61,10 @@ internal sealed class AcmeClient(
 
     private string? _nonce;
 
+    private DirectoryIndex? _directory;
+
     public async Task<X509Certificate2> EnsureIpCertificateAsync(string ip, CancellationToken ct)
     {
-        // Load existing cert? Always reissue per requirements.
         var dir = await GetDirectoryAsync(ct);
         using var acctKey = await GetOrCreateAccountKeyAsync(dir, ct);
 
@@ -67,7 +73,8 @@ internal sealed class AcmeClient(
         var order = await PostAsJwsAsync(dir.NewOrder, acctKey, kid: await GetKidAsync(ct), new OrderPayload(
             new[] { new Identifier("ip", ip) },
             null,
-            null
+            null,
+            IpCertProfile
         ), ct);
         var orderLoc = _lastLocation!;
         var orderObj = JsonDocument.Parse(order);
@@ -94,18 +101,21 @@ internal sealed class AcmeClient(
             var keyAuth = http01.Token + "." + thumb;
             challenges.Set(http01.Token, keyAuth);
 
-            // Respond to challenge (empty object)
+            // Tell the server to start validating
             _ = await PostAsJwsAsync(http01.Url, acctKey, await GetKidAsync(ct), new { }, ct);
 
-            // Poll authorization until valid
-            for (var i = 0; i < 30; i++)
+            for (var i = 0; i < 60; i++)
             {
-                await Task.Delay(TimeSpan.FromSeconds(Math.Min(2 + i, 10)), ct);
+                await Task.Delay(TimeSpan.FromSeconds(2), ct);
                 var stJson = await GetAsJwsAsync(authzUrl, acctKey, await GetKidAsync(ct), ct);
                 var st = JsonSerializer.Deserialize<Authorization>(stJson)!;
                 if (st.Status == "valid") break;
-                if (st.Status == "invalid") throw new InvalidOperationException("ACME authorization failed");
-                if (i == 29) throw new TimeoutException("ACME authorization polling timed out");
+                if (st.Status == "invalid")
+                {
+                    logger.LogError("ACME authorization invalid for {AuthzUrl}: {Body}", authzUrl, stJson);
+                    throw new InvalidOperationException("ACME authorization failed");
+                }
+                if (i == 59) throw new TimeoutException("ACME authorization polling timed out");
             }
 
             challenges.Remove(http01.Token);
@@ -152,20 +162,21 @@ internal sealed class AcmeClient(
 
     private async Task<DirectoryIndex> GetDirectoryAsync(CancellationToken ct)
     {
+        if (_directory is not null) return _directory;
         var res = await http.GetAsync(DirectoryUrl, ct);
         res.EnsureSuccessStatusCode();
         var json = await res.Content.ReadAsStringAsync(ct);
-        return JsonSerializer.Deserialize<DirectoryIndex>(json)!;
+        _directory = JsonSerializer.Deserialize<DirectoryIndex>(json)!;
+        return _directory;
     }
 
-    private async Task<string> GetNonceAsync(string newNonceUrl, CancellationToken ct)
+    private async Task<string> GetNonceAsync(CancellationToken ct)
     {
-        // Always fetch a fresh nonce. Let's Encrypt can reject reused/non-current nonces.
-        var req = new HttpRequestMessage(HttpMethod.Head, newNonceUrl);
+        var dir = await GetDirectoryAsync(ct);
+        var req = new HttpRequestMessage(HttpMethod.Head, dir.NewNonce);
         var res = await http.SendAsync(req, ct);
         res.EnsureSuccessStatusCode();
-        _nonce = res.Headers.GetValues("Replay-Nonce").First();
-        return _nonce;
+        return res.Headers.GetValues("Replay-Nonce").First();
     }
 
     private static string? TryGetReplayNonce(HttpResponseMessage res)
@@ -276,6 +287,7 @@ internal sealed class AcmeClient(
         throw new InvalidOperationException("Unreachable");
     }
 
+    // Update BuildJwsAsync to use fresh nonce and cached directory
     private async Task<string> BuildJwsAsync(string url, ECDsa key, string? kid, object payload, DirectoryIndex dir, CancellationToken ct)
     {
         var jwk = GetJwk(key);
@@ -283,7 +295,7 @@ internal sealed class AcmeClient(
         {
             ["alg"] = "ES256",
             ["url"] = url,
-            ["nonce"] = await GetNonceAsync(dir.NewNonce, ct),
+            ["nonce"] = await GetNonceAsync(ct),
             [kid is null ? "jwk" : "kid"] = kid is null ? jwk : kid
         };
         var protectedB64 = Base64Url(JsonSerializer.SerializeToUtf8Bytes(protObj));
