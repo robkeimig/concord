@@ -1,0 +1,276 @@
+using System.Net.Http.Headers;
+using System.Security.Cryptography;
+using System.Security.Cryptography.X509Certificates;
+using System.Text;
+using System.Text.Json;
+using System.Text.Json.Serialization;
+
+namespace Concord.Services.Acme;
+
+public interface IAcmeClient
+{
+    Task<X509Certificate2> EnsureIpCertificateAsync(string ip, CancellationToken ct);
+}
+
+internal sealed class AcmeClient(
+    HttpClient http,
+    IAcmeHttpChallengeStore challenges,
+    IAcmeAccountStore accountStore,
+    ILogger<AcmeClient> logger
+) : IAcmeClient
+{
+    private static readonly Uri DirectoryUrl = new("https://acme-v02.api.letsencrypt.org/directory");
+
+    private record DirectoryIndex(
+        [property: JsonPropertyName("newNonce")] string NewNonce,
+        [property: JsonPropertyName("newAccount")] string NewAccount,
+        [property: JsonPropertyName("newOrder")] string NewOrder
+    );
+
+    private record OrderPayload(
+        [property: JsonPropertyName("identifiers")] Identifier[] Identifiers,
+        [property: JsonPropertyName("notBefore")] string? NotBefore,
+        [property: JsonPropertyName("notAfter")] string? NotAfter
+    );
+    private record Identifier([property: JsonPropertyName("type")] string Type, [property: JsonPropertyName("value")] string Value);
+
+    private record Jwk(
+        [property: JsonPropertyName("kty")] string Kty,
+        [property: JsonPropertyName("crv")] string Crv,
+        [property: JsonPropertyName("x")] string X,
+        [property: JsonPropertyName("y")] string Y
+    );
+
+    private record AccountResp([property: JsonPropertyName("status")] string Status);
+
+    private record Challenge([property: JsonPropertyName("type")] string Type, [property: JsonPropertyName("token")] string Token, [property: JsonPropertyName("url")] string Url);
+    private record Authorization([property: JsonPropertyName("status")] string Status, [property: JsonPropertyName("challenges")] Challenge[] Challenges);
+
+    private record FinalizePayload([property: JsonPropertyName("csr")] string Csr);
+
+    private record JwsEnvelope(
+        [property: JsonPropertyName("protected")] string Protected,
+        [property: JsonPropertyName("payload")] string Payload,
+        [property: JsonPropertyName("signature")] string Signature
+    );
+
+    private string? _nonce;
+
+    public async Task<X509Certificate2> EnsureIpCertificateAsync(string ip, CancellationToken ct)
+    {
+        // Load existing cert? Always reissue per requirements.
+        // 6-day profile: set notAfter to now+6d.
+        var dir = await GetDirectoryAsync(ct);
+        using var acctKey = await GetOrCreateAccountKeyAsync(dir, ct);
+
+        // Create order for IP identifier
+        var order = await PostAsJwsAsync(dir.NewOrder, acctKey, kid: await GetKidAsync(ct), new OrderPayload(
+            new[] { new Identifier("ip", ip) },
+            null,
+            DateTimeOffset.UtcNow.AddDays(6).ToString("o")
+        ), ct);
+        var orderLoc = _lastLocation!;
+        var orderObj = JsonDocument.Parse(order);
+        var authzUrls = orderObj.RootElement.GetProperty("authorizations").EnumerateArray().Select(e => e.GetString()!).ToArray();
+        var finalizeUrl = orderObj.RootElement.GetProperty("finalize").GetString()!;
+
+        // For each authorization, complete http-01
+        foreach (var authzUrl in authzUrls)
+        {
+            var authzJson = await GetAsJwsAsync(authzUrl, acctKey, await GetKidAsync(ct), ct);
+            var authz = JsonSerializer.Deserialize<Authorization>(authzJson)!;
+            var http01 = authz.Challenges.First(c => c.Type == "http-01");
+
+            // Build JWK thumbprint per RFC 7638 (members ordered lexicographically)
+            var jwk = GetJwk(acctKey);
+            var jwkJson = JsonSerializer.Serialize(new SortedDictionary<string, string>
+            {
+                ["crv"] = jwk.Crv,
+                ["kty"] = jwk.Kty,
+                ["x"] = jwk.X,
+                ["y"] = jwk.Y
+            });
+            var thumb = Base64Url(Sha256(Encoding.UTF8.GetBytes(jwkJson)));
+            var keyAuth = http01.Token + "." + thumb;
+            challenges.Set(http01.Token, keyAuth);
+
+            // Respond to challenge (empty object)
+            _ = await PostAsJwsAsync(http01.Url, acctKey, await GetKidAsync(ct), new { }, ct);
+
+            // Poll authorization until valid
+            for (var i = 0; i < 30; i++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(Math.Min(2 + i, 10)), ct);
+                var stJson = await GetAsJwsAsync(authzUrl, acctKey, await GetKidAsync(ct), ct);
+                var st = JsonSerializer.Deserialize<Authorization>(stJson)!;
+                if (st.Status == "valid") break;
+                if (st.Status == "invalid") throw new InvalidOperationException("ACME authorization failed");
+                if (i == 29) throw new TimeoutException("ACME authorization polling timed out");
+            }
+
+            challenges.Remove(http01.Token);
+        }
+
+        // Generate key and CSR with IP as subjectAltName:IP
+        using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var req = new CertificateRequest("CN=" + ip, ecdsa, HashAlgorithmName.SHA256);
+        req.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
+        req.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
+        var sanBuilder = new SubjectAlternativeNameBuilder();
+        sanBuilder.AddIpAddress(System.Net.IPAddress.Parse(ip));
+        req.CertificateExtensions.Add(sanBuilder.Build());
+        var csrDer = req.CreateSigningRequest();
+        var csrB64 = Base64Url(csrDer);
+
+        var fin = await PostAsJwsAsync(finalizeUrl, acctKey, await GetKidAsync(ct), new FinalizePayload(csrB64), ct);
+        var ord2 = JsonDocument.Parse(fin);
+        var certUrl = ord2.RootElement.TryGetProperty("certificate", out var ce) ? ce.GetString() : null;
+        if (certUrl is null)
+        {
+            // poll order url until certificate is issued
+            for (var i = 0; i < 30 && certUrl is null; i++)
+            {
+                await Task.Delay(TimeSpan.FromSeconds(2), ct);
+                var ordSt = await GetAsJwsAsync(orderLoc, acctKey, await GetKidAsync(ct), ct);
+                var ordDoc = JsonDocument.Parse(ordSt);
+                certUrl = ordDoc.RootElement.TryGetProperty("certificate", out var ce2) ? ce2.GetString() : null;
+            }
+        }
+        if (certUrl is null) throw new InvalidOperationException("ACME finalize did not return certificate URL");
+
+        var certPem = await GetRawAsync(certUrl, ct); // chain in PEM
+        // Let's Encrypt returns a PEM chain; first cert is leaf.
+        var leafPem = ExtractFirstCertificatePem(certPem);
+        var cert = X509Certificate2.CreateFromPem(leafPem);
+        cert = cert.CopyWithPrivateKey(ecdsa);
+        return new X509Certificate2(cert.Export(X509ContentType.Pfx));
+    }
+
+    // --- ACME primitives ---
+    private string? _kid;
+    private string? _lastLocation;
+
+    private async Task<DirectoryIndex> GetDirectoryAsync(CancellationToken ct)
+    {
+        var res = await http.GetAsync(DirectoryUrl, ct);
+        res.EnsureSuccessStatusCode();
+        var json = await res.Content.ReadAsStringAsync(ct);
+        return JsonSerializer.Deserialize<DirectoryIndex>(json)!;
+    }
+
+    private async Task<string> GetNonceAsync(string newNonceUrl, CancellationToken ct)
+    {
+        if (_nonce is not null) return _nonce;
+        var req = new HttpRequestMessage(HttpMethod.Head, newNonceUrl);
+        var res = await http.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+        _nonce = res.Headers.GetValues("Replay-Nonce").First();
+        return _nonce;
+    }
+
+    private Task<string> GetKidAsync(CancellationToken ct)
+    {
+        if (_kid is null) throw new InvalidOperationException("ACME KID not set; account not created");
+        return Task.FromResult(_kid);
+    }
+
+    private async Task<ECDsa> GetOrCreateAccountKeyAsync(DirectoryIndex dir, CancellationToken ct)
+    {
+        var store = await accountStore.LoadAsync(ct);
+        if (store is { } loaded)
+        {
+            _kid = loaded.kid;
+            return loaded.key;
+        }
+        var key = ECDsa.Create(ECCurve.NamedCurves.nistP256);
+        var payload = new { termsOfServiceAgreed = true, contact = Array.Empty<string>() };
+        var jws = await BuildJwsAsync(dir.NewAccount, key, kid: null, payload, dir, ct);
+        var msg = new HttpRequestMessage(HttpMethod.Post, dir.NewAccount) { Content = new StringContent(jws, Encoding.UTF8, "application/jose+json") };
+        var res = await http.SendAsync(msg, ct);
+        res.EnsureSuccessStatusCode();
+        _kid = res.Headers.Location?.ToString();
+        if (_kid is null && res.Headers.TryGetValues("Location", out var vals))
+        {
+            _kid = vals.FirstOrDefault();
+        }
+        if (_kid is null) throw new InvalidOperationException("ACME account creation did not return Location header");
+        await accountStore.SaveAsync(key, _kid, ct);
+        return key;
+    }
+
+    private async Task<string> PostAsJwsAsync(string url, ECDsa key, string kid, object payload, CancellationToken ct)
+    {
+        var dir = await GetDirectoryAsync(ct);
+        var jws = await BuildJwsAsync(url, key, kid, payload, dir, ct);
+        var res = await http.PostAsync(url, new StringContent(jws, Encoding.UTF8, "application/jose+json"), ct);
+        res.EnsureSuccessStatusCode();
+        _lastLocation = res.Headers.Location?.ToString();
+        if (_lastLocation is null && res.Headers.TryGetValues("Location", out var vals))
+            _lastLocation = vals.FirstOrDefault();
+        _nonce = res.Headers.TryGetValues("Replay-Nonce", out var n) ? n.FirstOrDefault() : null;
+        return await res.Content.ReadAsStringAsync(ct);
+    }
+
+    private async Task<string> GetAsJwsAsync(string url, ECDsa key, string kid, CancellationToken ct)
+    {
+        var dir = await GetDirectoryAsync(ct);
+        var jws = await BuildJwsAsync(url, key, kid, string.Empty, dir, ct);
+        var req = new HttpRequestMessage(HttpMethod.Post, url) { Content = new StringContent(jws, Encoding.UTF8, "application/jose+json") };
+        var res = await http.SendAsync(req, ct);
+        res.EnsureSuccessStatusCode();
+        _nonce = res.Headers.TryGetValues("Replay-Nonce", out var n) ? n.FirstOrDefault() : null;
+        return await res.Content.ReadAsStringAsync(ct);
+    }
+
+    private async Task<string> GetRawAsync(string url, CancellationToken ct)
+    {
+        var res = await http.GetAsync(url, ct);
+        res.EnsureSuccessStatusCode();
+        return await res.Content.ReadAsStringAsync(ct);
+    }
+
+    private async Task<string> BuildJwsAsync(string url, ECDsa key, string? kid, object payload, DirectoryIndex dir, CancellationToken ct)
+    {
+        var jwk = GetJwk(key);
+        var protObj = new Dictionary<string, object?>
+        {
+            ["alg"] = "ES256",
+            ["url"] = url,
+            ["nonce"] = await GetNonceAsync(dir.NewNonce, ct),
+            [kid is null ? "jwk" : "kid"] = kid is null ? jwk : kid
+        };
+        var protectedB64 = Base64Url(JsonSerializer.SerializeToUtf8Bytes(protObj));
+        var payloadB64 = payload is string s && s == string.Empty ? string.Empty : Base64Url(JsonSerializer.SerializeToUtf8Bytes(payload));
+        var signingInput = Encoding.UTF8.GetBytes(protectedB64 + "." + payloadB64);
+        var sig = key.SignData(signingInput, HashAlgorithmName.SHA256);
+        var env = new JwsEnvelope(protectedB64, payloadB64, Base64Url(sig));
+        return JsonSerializer.Serialize(env);
+    }
+
+    private static Jwk GetJwk(ECDsa key)
+    {
+        var p = key.ExportParameters(false);
+        return new Jwk("EC", "P-256", Base64Url(p.Q.X!), Base64Url(p.Q.Y!));
+    }
+
+    private static string Base64Url(byte[] bytes)
+        => Convert.ToBase64String(bytes).TrimEnd('=').Replace('+', '-').Replace('/', '_');
+
+    private static byte[] Sha256(byte[] data)
+    {
+        using var sha = SHA256.Create();
+        return sha.ComputeHash(data);
+    }
+
+    private static string ExtractFirstCertificatePem(string pem)
+    {
+        const string begin = "-----BEGIN CERTIFICATE-----";
+        const string end = "-----END CERTIFICATE-----";
+        var start = pem.IndexOf(begin, StringComparison.Ordinal);
+        if (start < 0) throw new InvalidOperationException("No certificate in PEM");
+        var finish = pem.IndexOf(end, start, StringComparison.Ordinal);
+        if (finish < 0) throw new InvalidOperationException("Malformed PEM");
+        finish += end.Length;
+        return pem.Substring(start, finish - start);
+    }
+}
