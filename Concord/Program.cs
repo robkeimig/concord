@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using System.Net.WebSockets;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using Concord.Services;
@@ -7,42 +8,76 @@ using Concord.Services.Acme;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Register services
 builder.Services.AddHttpClient<IPublicIpService, AmazonPublicIpService>(client =>
 {
     client.Timeout = TimeSpan.FromSeconds(10);
 });
 
-// ACME & certificate services
+// ACME services
 var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
 var acmeDir = Path.Combine(dataDir, "acme");
-var certDir = Path.Combine(dataDir, "certs");
 Directory.CreateDirectory(acmeDir);
-Directory.CreateDirectory(certDir);
-
-var tlsProvider = new CurrentCertificateProvider();
 
 builder.Services.AddSingleton<IAcmeHttpChallengeStore, AcmeHttpChallengeStore>();
 builder.Services.AddSingleton<IAcmeAccountStore>(_ => new FileAcmeAccountStore(acmeDir));
-builder.Services.AddSingleton<ICertificateStore>(_ => new FileCertificateStore(certDir));
 builder.Services.AddHttpClient<IAcmeClient, AcmeClient>().ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
-builder.Services.AddSingleton<ICurrentCertificateProvider>(tlsProvider);
-builder.Services.AddSingleton<ICertificateManager, CertificateManager>();
-builder.Services.AddHostedService<CertificateRenewalService>();
+
+// Cert state kept in-memory and refreshed synchronously during certificate selection.
+object certLock = new();
+X509Certificate2? currentCert = null;
+DateTimeOffset? issuedAtUtc = null;
+string? issuedForIp = null;
+
+IServiceProvider? serviceProvider = null;
 
 builder.WebHost.ConfigureKestrel(options =>
 {
     options.ListenAnyIP(80);
     options.ListenAnyIP(443, listenOptions =>
     {
-        listenOptions.UseHttps((httpsOptions) =>
+        listenOptions.UseHttps(httpsOptions =>
         {
-            httpsOptions.ServerCertificateSelector = (ctx, name) => tlsProvider.Current;
+            httpsOptions.ServerCertificateSelector = (connectionContext, name) =>
+            {
+                lock (certLock)
+                {
+                    var now = DateTimeOffset.UtcNow;
+                    var needsRenew = currentCert is null
+                        || issuedAtUtc is null
+                        || (now - issuedAtUtc.Value) >= TimeSpan.FromHours(24);
+
+                    if (!needsRenew)
+                        return currentCert!;
+
+                    var sp = serviceProvider ?? throw new InvalidOperationException("ServiceProvider not initialized");
+                    using var scope = sp.CreateScope();
+                    var ipService = scope.ServiceProvider.GetRequiredService<IPublicIpService>();
+                    var acme = scope.ServiceProvider.GetRequiredService<IAcmeClient>();
+                    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("KestrelCertSelector");
+
+                    var ip = ipService.GetPublicIpAsync(CancellationToken.None).GetAwaiter().GetResult();
+
+                    if (issuedForIp is not null && !string.Equals(issuedForIp, ip, StringComparison.Ordinal))
+                        logger.LogInformation("Public IP changed from {OldIp} to {NewIp}; re-issuing certificate", issuedForIp, ip);
+
+                    logger.LogInformation("Issuing/renewing Let's Encrypt certificate for {Ip}", ip);
+                    currentCert = acme.EnsureIpCertificateAsync(ip, CancellationToken.None).GetAwaiter().GetResult();
+
+                    issuedAtUtc = now;
+                    issuedForIp = ip;
+
+                    return currentCert;
+                }
+            };
         });
     });
 });
 
 var app = builder.Build();
+serviceProvider = app.Services;
+
+app.Logger.LogInformation("Concord starting");
+
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -57,9 +92,8 @@ app.UseWebSockets(wsOptions);
 app.MapGet("/.well-known/acme-challenge/{token}", (string token, IAcmeHttpChallengeStore store) =>
 {
     if (store.TryGet(token, out var keyAuth))
-    {
         return Results.Text(keyAuth, "text/plain", Encoding.UTF8);
-    }
+
     return Results.NotFound();
 });
 
@@ -113,9 +147,7 @@ app.Map("/ws", async context =>
         try
         {
             if (socket.State is WebSocketState.Open or WebSocketState.CloseReceived)
-            {
                 await socket.CloseAsync(WebSocketCloseStatus.NormalClosure, "bye", CancellationToken.None);
-            }
         }
         catch
         {
@@ -123,6 +155,8 @@ app.Map("/ws", async context =>
         }
     }
 });
+
+app.Run();
 
 async Task ReceiveLoopAsync(string clientId, WebSocket socket, CancellationToken ct)
 {
@@ -248,5 +282,3 @@ static async Task SendAsync(WebSocket ws, object payload, CancellationToken ct)
     var bytes = Encoding.UTF8.GetBytes(json);
     await ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
 }
-
-app.Run();
