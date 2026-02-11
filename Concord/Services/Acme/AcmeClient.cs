@@ -27,8 +27,9 @@ internal sealed class AcmeClient(
 
     // Some ACME CAs validate that the CSR subject CN looks like an issued DNS name
     // with a valid public suffix. For IP certs, the IP must be in SAN; CN is not used.
-    // Use a reserved "example" domain by default, and allow override via env var.
-    private static readonly string CsrCommonName = "concord.example";
+    // Use a syntactically valid DNS name with a real public suffix by default.
+    // Can be overridden via env var.
+    private static readonly string CsrCommonName = "example.com";
 
     private record DirectoryIndex(
         [property: JsonPropertyName("newNonce")] string NewNonce,
