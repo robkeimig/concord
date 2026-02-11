@@ -25,12 +25,6 @@ internal sealed class AcmeClient(
     // Allow override via env var for forward-compat.
     private static readonly string IpCertProfile = "shortlived";
 
-    // Some ACME CAs validate that the CSR subject CN looks like an issued DNS name
-    // with a valid public suffix. For IP certs, the IP must be in SAN; CN is not used.
-    // Use a syntactically valid DNS name with a real public suffix by default.
-    // Can be overridden via env var.
-    private static readonly string CsrCommonName = "example.com";
-
     private record DirectoryIndex(
         [property: JsonPropertyName("newNonce")] string NewNonce,
         [property: JsonPropertyName("newAccount")] string NewAccount,
@@ -131,7 +125,7 @@ internal sealed class AcmeClient(
         // LetsEncrypt rejects CSRs that contain an IP address in the Subject Common Name (CN).
         // Keep the IP only in subjectAltName:IP and use a neutral CN.
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var req = new CertificateRequest($"CN={CsrCommonName}", ecdsa, HashAlgorithmName.SHA256);
+        var req = new CertificateRequest($"CN={ip}", ecdsa, HashAlgorithmName.SHA256);
         req.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
         req.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
         var sanBuilder = new SubjectAlternativeNameBuilder();
