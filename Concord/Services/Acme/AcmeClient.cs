@@ -25,10 +25,10 @@ internal sealed class AcmeClient(
     // Allow override via env var for forward-compat.
     private static readonly string IpCertProfile = "shortlived";
 
-    // Let's Encrypt appears to validate that the CSR subject CN looks like a DNS name.
-    // For IP certs the IP must be in SAN (subjectAltName:IP); CN is informational.
-    // Allow override (e.g. in tests) but default to a harmless dotted name.
-    private static readonly string CsrCommonName = "concord.local";
+    // Some ACME CAs validate that the CSR subject CN looks like an issued DNS name
+    // with a valid public suffix. For IP certs, the IP must be in SAN; CN is not used.
+    // Use a reserved "example" domain by default, and allow override via env var.
+    private static readonly string CsrCommonName = "concord.example";
 
     private record DirectoryIndex(
         [property: JsonPropertyName("newNonce")] string NewNonce,
