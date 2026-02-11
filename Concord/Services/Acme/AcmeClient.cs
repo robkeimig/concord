@@ -121,9 +121,11 @@ internal sealed class AcmeClient(
             challenges.Remove(http01.Token);
         }
 
-        // Generate key and CSR with IP as subjectAltName:IP
+        // Generate key and CSR.
+        // LetsEncrypt rejects CSRs that contain an IP address in the Subject Common Name (CN).
+        // Keep the IP only in subjectAltName:IP and use a neutral CN.
         using var ecdsa = ECDsa.Create(ECCurve.NamedCurves.nistP256);
-        var req = new CertificateRequest("CN=" + ip, ecdsa, HashAlgorithmName.SHA256);
+        var req = new CertificateRequest("CN=concord-ip", ecdsa, HashAlgorithmName.SHA256);
         req.CertificateExtensions.Add(new X509BasicConstraintsExtension(false, false, 0, false));
         req.CertificateExtensions.Add(new X509KeyUsageExtension(X509KeyUsageFlags.DigitalSignature | X509KeyUsageFlags.KeyEncipherment, false));
         var sanBuilder = new SubjectAlternativeNameBuilder();
