@@ -38,7 +38,6 @@ public class Configuration
         var config = JsonSerializer.Deserialize<Configuration>(json, SerializerOptions) ?? new Configuration();
         config.Servers ??= [];
         config.Blobs ??= [];
-
         return config;
     }
 
