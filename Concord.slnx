@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="Concord/Concord.csproj" />
+  <Project Path="WinFormsClient/WinFormsClient.csproj" Id="3ad366ad-c764-4be4-b07b-7c3aef63b440" />
 </Solution>
