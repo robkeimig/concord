@@ -29,15 +29,15 @@
                 <div class="channelGroup">
                     <div class="groupTitle">Text</div>
                     <ul class="channelList" role="list">
-                        <li class="channel active">
+                        <li class="channel active" role="button" tabindex="0" aria-label="View channel general">
                             <span class="channelName"># general</span>
                             <button class="channelCfg" type="button" aria-label="Configure channel general" title="Configure">⚙</button>
                         </li>
-                        <li class="channel">
+                        <li class="channel" role="button" tabindex="0" aria-label="View channel announcements">
                             <span class="channelName"># announcements</span>
                             <button class="channelCfg" type="button" aria-label="Configure channel announcements" title="Configure">⚙</button>
                         </li>
-                        <li class="channel">
+                        <li class="channel" role="button" tabindex="0" aria-label="View channel dev">
                             <span class="channelName"># dev</span>
                             <button class="channelCfg" type="button" aria-label="Configure channel dev" title="Configure">⚙</button>
                         </li>
@@ -48,6 +48,7 @@
                     <div class="groupTitle">Voice</div>
 
                     <div class="voiceChannel">
+                        <button class="voiceJoin" type="button" aria-label="Join voice channel Lounge" title="Join"></button>
                         <div class="voiceHeader">🔊 Lounge</div>
                         <ul class="participantList" role="list">
                             <li class="participant">
@@ -63,6 +64,7 @@
                     </div>
 
                     <div class="voiceChannel">
+                        <button class="voiceJoin" type="button" aria-label="Join voice channel Pairing" title="Join"></button>
                         <div class="voiceHeader">🔊 Pairing</div>
                         <ul class="participantList" role="list">
                             <li class="participant">

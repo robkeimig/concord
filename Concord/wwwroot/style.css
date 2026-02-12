@@ -167,6 +167,7 @@ body {
 
 .channel:hover {
     background: var(--surface-3);
+    cursor: pointer;
 }
 
 .channel.active {
@@ -184,6 +185,8 @@ body {
     color: var(--text);
     cursor: pointer;
     opacity: 0;
+    position: relative;
+    z-index: 2;
 }
 
 .channel:hover .channelCfg,
@@ -200,15 +203,39 @@ body {
     background: var(--surface-2);
     border-radius: 12px;
     padding: 10px;
+    position: relative;
+}
+
+.voiceChannel:hover {
+    background: var(--surface-3);
 }
 
 .voiceChannel + .voiceChannel {
     margin-top: 10px;
 }
 
+.voiceJoin {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: transparent;
+    padding: 0;
+    margin: 0;
+    border-radius: 12px;
+    cursor: pointer;
+}
+
+.voiceJoin:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(107, 182, 255, 0.18);
+}
+
 .voiceHeader {
     font-weight: 650;
     margin-bottom: 8px;
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .participantList {
@@ -218,6 +245,9 @@ body {
     display: flex;
     flex-direction: column;
     gap: 6px;
+    position: relative;
+    z-index: 1;
+    pointer-events: none;
 }
 
 .participant {
