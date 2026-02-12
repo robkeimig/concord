@@ -9,6 +9,9 @@
     --surface-2: #0d0d0d; /* inner */
     --surface-3: #121212; /* hover */
 
+    /* Dedicated surface for scrollable chat region (slightly darker than message bubbles) */
+    --surface-chat: #070707;
+
     /* Stronger outlines */
     --border-1: #333333; /* cards */
     --border-2: #3d3d3d; /* inner */
@@ -74,6 +77,11 @@ body {
     box-shadow: var(--shadow);
 }
 
+.chat-container {
+    background: 
+        radial-gradient(100% 100% at 50% 50%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 60%),
+        rgba(255,255,255,.05);
+}
 /* Allow specific cards to grow to fill remaining column height */
 .card.grow {
     flex: 1 1 auto;
@@ -460,6 +468,7 @@ body {
     overflow-y: auto;
     overflow-x: hidden; /* vertical scrolling only */
     padding-right: 6px;
+
 }
 
 .msg {
