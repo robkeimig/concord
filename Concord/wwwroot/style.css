@@ -39,6 +39,7 @@ body {
     color: var(--text);
     font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, Arial, "Apple Color Emoji", "Segoe UI Emoji";
     line-height: 1.35;
+    overflow-x: hidden; /* never allow horizontal page scroll */
 }
 
 .app {
@@ -92,7 +93,8 @@ body {
 .card.grow .memberList {
     flex: 1 1 auto;
     min-height: 0;
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden;
 }
 
 .cardTitle {
@@ -455,7 +457,8 @@ body {
     flex-direction: column;
     gap: 12px;
     max-height: none; /* height is now controlled by flex parent */
-    overflow: auto;
+    overflow-y: auto;
+    overflow-x: hidden; /* vertical scrolling only */
     padding-right: 6px;
 }
 
@@ -465,21 +468,17 @@ body {
     border-radius: 12px;
     padding: 12px;
     max-width: 88%;
+    overflow: visible; /* prevent per-message scrollbars */
 }
-
 /* Message variants */
 .msg-me {
     margin-left: auto;
-    border-color: rgba(107, 182, 255, 0.35);
-    background: rgba(107, 182, 255, 0.10);
+    /* Monochrome: subtle, only slightly more present than incoming */
+    border-color: rgba(255, 255, 255, 0.50);
+    background: rgba(255, 255, 255, 0.1);
 }
-
-.msg-other {
-    margin-right: auto;
-}
-
-.msg-me .msgAuthor {
-    color: #d7f4ff;
+.msgAuthor {
+    font-weight: 750;
 }
 
 .msgHeader {
@@ -489,13 +488,25 @@ body {
     margin-bottom: 6px;
 }
 
-.msgAuthor {
-    font-weight: 750;
-}
 
+.msg-other {
+    margin-right: auto;
+    /* Monochrome: slightly darker than self */
+    border-color: rgba(255, 255, 255, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+}
 .msgTime {
     color: var(--muted);
     font-size: 0.85rem;
+}
+
+
+
+/* Ensure long text/links never force horizontal scrolling */
+.msgBody,
+.markdown {
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .markdown p {
@@ -508,7 +519,9 @@ body {
     border-radius: 12px;
     border: 1px solid var(--border-2);
     background: #050505;
-    overflow: auto;
+    overflow-y: hidden;
+    overflow-x: auto; /* code blocks can scroll horizontally within themselves */
+    max-width: 100%;
 }
 
 .markdown code {
