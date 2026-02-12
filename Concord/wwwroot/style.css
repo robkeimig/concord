@@ -44,7 +44,7 @@ body {
 .app {
     min-height: 100vh;
     display: grid;
-    grid-template-columns: minmax(260px, 400px) 1fr minmax(260px, 400px);
+    grid-template-columns: 300px 1fr 300px;
     gap: 16px;
     padding: 16px;
     align-items: start;
