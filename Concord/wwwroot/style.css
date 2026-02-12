@@ -11,8 +11,23 @@ h1 {
     margin-bottom: 1rem;
 }
 
+h2 {
+    font-size: 1rem;
+    margin: 0 0 0.5rem 0;
+    color: #ddd;
+}
+
 .controls {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
     margin-bottom: 1rem;
+    flex-wrap: wrap;
+}
+
+.status {
+    color: #aaa;
+    font-size: 0.9rem;
 }
 
 button {
@@ -21,10 +36,27 @@ button {
     cursor: pointer;
 }
 
-.videos {
+.layout {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 320px;
+    gap: 0.75rem;
+    align-items: start;
+}
+
+.panel {
+    border: 1px solid #333;
+    background: #0b0b0b;
+    padding: 0.75rem;
+}
+
+.remoteHeader {
+    display: flex;
+    justify-content: space-between;
     gap: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    color: #aaa;
+    font-size: 0.9rem;
 }
 
 video {
@@ -33,4 +65,41 @@ video {
     background: #000;
     border: 1px solid #333;
     object-fit: contain;
+}
+
+.streamList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.streamRow {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    border: 1px solid #222;
+    background: #121212;
+}
+
+.streamRow.muted {
+    color: #888;
+}
+
+.streamLabel {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    font-size: 0.85rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+@media (max-width: 1100px) {
+    .layout {
+        grid-template-columns: 1fr;
+    }
+
+    video {
+        height: 35vh;
+    }
 }

@@ -2,19 +2,37 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Minimal Screen Share Demo</title>
+    <title>Screen Share Demo</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>Screen Share Demo (1:1)</h1>
+    <h1>Screen Share Demo (room)</h1>
 
     <div class="controls">
-        <button id="shareBtn">Share Screen</button>
+        <button id="shareBtn">Start Sharing</button>
+        <button id="stopShareBtn" disabled>Stop Sharing</button>
+        <span class="status" id="status"></span>
     </div>
 
-    <div class="videos">
-        <video id="localVideo" autoplay muted playsinline></video>
-        <video id="remoteVideo" autoplay playsinline></video>
+    <div class="layout">
+        <div class="panel">
+            <h2>Local</h2>
+            <video id="localVideo" autoplay muted playsinline></video>
+        </div>
+
+        <div class="panel">
+            <h2>Remote</h2>
+            <div class="remoteHeader">
+                <div>Viewing: <span id="viewingLabel">(none)</span></div>
+                <button id="disconnectBtn" disabled>Disconnect</button>
+            </div>
+            <video id="remoteVideo" autoplay playsinline></video>
+        </div>
+
+        <div class="panel">
+            <h2>Active streams</h2>
+            <div id="streamList" class="streamList"></div>
+        </div>
     </div>
 
     <script src="app.js"></script>
