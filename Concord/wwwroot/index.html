@@ -21,19 +21,31 @@
             </section>
 
             <section class="card" aria-label="Channels">
-                <div class="cardTitle">Channels</div>
+                <div class="cardHeader">
+                    <div class="cardTitle">Channels</div>
+                    <button class="iconBtn iconBtnSm" type="button" aria-label="Add channel" title="Add channel">+</button>
+                </div>
 
                 <div class="channelGroup">
-                    <div class="groupTitle">Text Channels</div>
+                    <div class="groupTitle">Text</div>
                     <ul class="channelList" role="list">
-                        <li class="channel active"># general</li>
-                        <li class="channel"># announcements</li>
-                        <li class="channel"># dev</li>
+                        <li class="channel active">
+                            <span class="channelName"># general</span>
+                            <button class="channelCfg" type="button" aria-label="Configure channel general" title="Configure">⚙</button>
+                        </li>
+                        <li class="channel">
+                            <span class="channelName"># announcements</span>
+                            <button class="channelCfg" type="button" aria-label="Configure channel announcements" title="Configure">⚙</button>
+                        </li>
+                        <li class="channel">
+                            <span class="channelName"># dev</span>
+                            <button class="channelCfg" type="button" aria-label="Configure channel dev" title="Configure">⚙</button>
+                        </li>
                     </ul>
                 </div>
 
                 <div class="channelGroup">
-                    <div class="groupTitle">Voice Channels</div>
+                    <div class="groupTitle">Voice</div>
 
                     <div class="voiceChannel">
                         <div class="voiceHeader">🔊 Lounge</div>

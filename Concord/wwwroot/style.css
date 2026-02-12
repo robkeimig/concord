@@ -1,10 +1,17 @@
 ﻿:root {
     color-scheme: dark;
 
+    /* Option C: outline-first */
     --bg: #000000;
-    --card: #0b0b0b;
-    --card2: #0f0f0f;
-    --border: #1f1f1f;
+
+    /* Keep surfaces very close; structure comes from outlines/dividers */
+    --surface-1: #0a0a0a; /* cards */
+    --surface-2: #0d0d0d; /* inner */
+    --surface-3: #121212; /* hover */
+
+    /* Stronger outlines */
+    --border-1: #333333; /* cards */
+    --border-2: #3d3d3d; /* inner */
 
     --text: #eaeaea;
     --muted: #a3a3a3;
@@ -13,7 +20,9 @@
     --danger: #ff4d4d;
 
     --radius: 14px;
-    --shadow: 0 10px 30px rgba(0, 0, 0, 0.45);
+
+    /* Reduced shadow (outline-first) */
+    --shadow: 0 6px 18px rgba(0, 0, 0, 0.25);
 }
 
 * {
@@ -55,8 +64,8 @@ body {
 }
 
 .card {
-    background: linear-gradient(180deg, var(--card), var(--card2));
-    border: 1px solid var(--border);
+    background: var(--surface-1);
+    border: 1px solid var(--border-1);
     border-radius: var(--radius);
     padding: 14px;
     box-shadow: var(--shadow);
@@ -64,10 +73,23 @@ body {
 
 .cardTitle {
     font-size: 0.9rem;
-    font-weight: 650;
-    letter-spacing: 0.02em;
-    color: #d9d9d9;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #e6e6e6;
     margin-bottom: 10px;
+}
+
+.cardHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.cardHeader .cardTitle {
+    margin-bottom: 0;
 }
 
 .muted {
@@ -88,9 +110,9 @@ body {
     height: 44px;
     border-radius: 12px;
     background:
-        radial-gradient(120% 120% at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 60%),
-        #121212;
-    border: 1px solid var(--border);
+        radial-gradient(120% 120% at 30% 30%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 60%),
+        var(--surface-2);
+    border: 1px solid var(--border-2);
 }
 
 .serverName {
@@ -128,22 +150,54 @@ body {
 .channel {
     padding: 10px 10px;
     border-radius: 10px;
-    border: 1px solid transparent;
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
     color: #e5e5e5;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.channelName {
+    min-width: 0;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
 
+.channel:hover {
+    background: var(--surface-3);
+}
+
 .channel.active {
-    border-color: rgba(107, 182, 255, 0.35);
-    background: rgba(107, 182, 255, 0.12);
+    border-color: rgba(107, 182, 255, 0.75);
+    background: rgba(107, 182, 255, 0.18);
+}
+
+.channelCfg {
+    margin-left: auto;
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+    border: 1px solid var(--border-2);
+    background: transparent;
+    color: var(--text);
+    cursor: pointer;
+    opacity: 0;
+}
+
+.channel:hover .channelCfg,
+.channel:focus-within .channelCfg {
+    opacity: 1;
+}
+
+.channelCfg:hover {
+    background: rgba(255, 255, 255, 0.06);
 }
 
 .voiceChannel {
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
     border-radius: 12px;
     padding: 10px;
 }
@@ -238,7 +292,7 @@ body {
 .mediaPreview {
     aspect-ratio: 16 / 10;
     background: #050505;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-2);
     border-radius: 12px;
     position: relative;
     overflow: hidden;
@@ -264,17 +318,17 @@ body {
 
 .btn {
     appearance: none;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
     color: var(--text);
     padding: 10px 10px;
     border-radius: 12px;
-    font-weight: 650;
+    font-weight: 700;
     cursor: pointer;
 }
 
 .btn:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--surface-3);
 }
 
 .btnDanger {
@@ -291,14 +345,22 @@ body {
     width: 40px;
     height: 40px;
     border-radius: 12px;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
     color: var(--text);
     cursor: pointer;
 }
 
 .iconBtn:hover {
-    background: rgba(255, 255, 255, 0.07);
+    background: var(--surface-3);
+}
+
+.iconBtnSm {
+    margin-left: 0;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    font-weight: 800;
 }
 
 /* Profile */
@@ -313,10 +375,10 @@ body {
     width: 42px;
     height: 42px;
     border-radius: 999px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-2);
     background:
-        radial-gradient(120% 120% at 30% 30%, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0) 60%),
-        #121212;
+        radial-gradient(120% 120% at 30% 30%, rgba(255, 255, 255, 0.10), rgba(255, 255, 255, 0) 60%),
+        var(--surface-2);
 }
 
 .profileMeta {
@@ -344,8 +406,8 @@ body {
 }
 
 .msg {
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
     border-radius: 12px;
     padding: 12px;
 }
@@ -374,7 +436,7 @@ body {
     margin: 10px 0 0;
     padding: 10px;
     border-radius: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-2);
     background: #050505;
     overflow: auto;
 }
@@ -407,7 +469,7 @@ body {
     max-height: 180px;
     padding: 12px;
     border-radius: 12px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-2);
     background: #050505;
     color: var(--text);
     outline: none;
@@ -440,6 +502,10 @@ body {
     gap: 10px;
     padding: 10px;
     border-radius: 12px;
-    border: 1px solid var(--border);
-    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid var(--border-2);
+    background: var(--surface-2);
+}
+
+.member:hover {
+    background: var(--surface-3);
 }
