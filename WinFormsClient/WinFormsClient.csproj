@@ -6,6 +6,12 @@
     <Nullable>enable</Nullable>
     <UseWindowsForms>true</UseWindowsForms>
     <ImplicitUsings>enable</ImplicitUsings>
+	<AssemblyName>ConcordWinFormsClient</AssemblyName>
+	<RootNamespace>Concord.WinForms</RootNamespace>
+	<AssemblyTitle>Concord WinForms Client</AssemblyTitle>
+	<Product>Concord WinForms Client</Product>
+	<Company>None</Company>
+	<Description>A Concord client application built using WinForms and WebView2.</Description>
   </PropertyGroup>
 
 <ItemGroup>
