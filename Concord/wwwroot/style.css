@@ -47,7 +47,7 @@ body {
     grid-template-columns: 300px 1fr 300px;
     gap: 16px;
     padding: 16px;
-    align-items: start;
+    align-items: stretch; /* ensure columns stretch to full row height */
 }
 
 @media (max-width: 960px) {
@@ -61,6 +61,8 @@ body {
     flex-direction: column;
     gap: 16px;
     min-width: 0;
+    height: calc(100vh - 32px); /* viewport height minus .app vertical padding */
+    min-height: 0; /* allow children to shrink for proper scrolling */
 }
 
 .card {
@@ -69,6 +71,28 @@ body {
     border-radius: var(--radius);
     padding: 14px;
     box-shadow: var(--shadow);
+}
+
+/* Allow specific cards to grow to fill remaining column height */
+.card.grow {
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Default: if a card contains typical header/title + body, let the body scroll */
+.card.grow .cardHeader,
+.card.grow .cardTitle {
+    flex: 0 0 auto;
+}
+
+.card.grow .channelList,
+.card.grow .chat,
+.card.grow .memberList {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
 }
 
 .cardTitle {
@@ -430,7 +454,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 12px;
-    max-height: min(68vh, 880px);
+    max-height: none; /* height is now controlled by flex parent */
     overflow: auto;
     padding-right: 6px;
 }
