@@ -464,6 +464,22 @@ body {
     background: var(--surface-2);
     border-radius: 12px;
     padding: 12px;
+    max-width: 88%;
+}
+
+/* Message variants */
+.msg-me {
+    margin-left: auto;
+    border-color: rgba(107, 182, 255, 0.35);
+    background: rgba(107, 182, 255, 0.10);
+}
+
+.msg-other {
+    margin-right: auto;
+}
+
+.msg-me .msgAuthor {
+    color: #d7f4ff;
 }
 
 .msgHeader {
