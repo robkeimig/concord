@@ -2,37 +2,178 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <title>Screen Share Demo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Concord</title>
     <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-    <h1>Screen Share Demo (room)</h1>
+    <div class="app" aria-label="Concord layout">
+        <!-- Column 1 -->
+        <aside class="col col-left" aria-label="Server and channels">
+            <section class="card" aria-label="Server identification">
+                <div class="serverId">
+                    <div class="serverPhoto" aria-hidden="true"></div>
+                    <div class="serverMeta">
+                        <div class="serverName">Example Server</div>
+                        <div class="serverSub">192.168.1.50 · US-East</div>
+                    </div>
+                </div>
+            </section>
 
-    <div class="controls">
-        <button id="shareBtn">Start Sharing</button>
-        <button id="stopShareBtn" disabled>Stop Sharing</button>
-        <span class="status" id="status"></span>
-    </div>
+            <section class="card" aria-label="Channels">
+                <div class="cardTitle">Channels</div>
 
-    <div class="layout">
-        <div class="panel">
-            <h2>Local</h2>
-            <video id="localVideo" autoplay muted playsinline></video>
-        </div>
+                <div class="channelGroup">
+                    <div class="groupTitle">Text Channels</div>
+                    <ul class="channelList" role="list">
+                        <li class="channel active"># general</li>
+                        <li class="channel"># announcements</li>
+                        <li class="channel"># dev</li>
+                    </ul>
+                </div>
 
-        <div class="panel">
-            <h2>Remote</h2>
-            <div class="remoteHeader">
-                <div>Viewing: <span id="viewingLabel">(none)</span></div>
-                <button id="disconnectBtn" disabled>Disconnect</button>
-            </div>
-            <video id="remoteVideo" autoplay playsinline></video>
-        </div>
+                <div class="channelGroup">
+                    <div class="groupTitle">Voice Channels</div>
 
-        <div class="panel">
-            <h2>Active streams</h2>
-            <div id="streamList" class="streamList"></div>
-        </div>
+                    <div class="voiceChannel">
+                        <div class="voiceHeader">🔊 Lounge</div>
+                        <ul class="participantList" role="list">
+                            <li class="participant">
+                                <span class="statusDot online" aria-hidden="true"></span>
+                                <span class="name">Ada</span>
+                                <span class="pill">talking</span>
+                            </li>
+                            <li class="participant">
+                                <span class="statusDot idle" aria-hidden="true"></span>
+                                <span class="name">Linus</span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="voiceChannel">
+                        <div class="voiceHeader">🔊 Pairing</div>
+                        <ul class="participantList" role="list">
+                            <li class="participant">
+                                <span class="statusDot dnd" aria-hidden="true"></span>
+                                <span class="name">Grace</span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <section class="card" aria-label="Media status">
+                <div class="cardTitle">Media</div>
+
+                <div class="mediaRow">
+                    <div class="vad">
+                        <span class="vadDot" aria-hidden="true"></span>
+                        Voice activity
+                    </div>
+                    <div class="muted">(placeholder)</div>
+                </div>
+
+                <div class="mediaPreviewGrid">
+                    <div class="mediaPreview">
+                        <div class="previewLabel">Screen</div>
+                    </div>
+                    <div class="mediaPreview">
+                        <div class="previewLabel">Camera</div>
+                    </div>
+                </div>
+
+                <div class="btnRow">
+                    <button class="btn btnDanger" type="button">Leave call</button>
+                    <button class="btn" type="button">Mute audio</button>
+                    <button class="btn" type="button">Mute video</button>
+                </div>
+            </section>
+
+            <section class="card" aria-label="Profile and settings">
+                <div class="profileRow">
+                    <div class="avatar" aria-hidden="true"></div>
+                    <div class="profileMeta">
+                        <div class="profileName">You</div>
+                        <div class="profileSub">online</div>
+                    </div>
+
+                    <button class="iconBtn" type="button" aria-label="Settings">
+                        ⚙
+                    </button>
+                </div>
+            </section>
+        </aside>
+
+        <!-- Column 2 -->
+        <main class="col col-center" aria-label="Current conversation">
+            <section class="card" aria-label="Current thing">
+                <div class="cardTitle">Current Thing</div>
+
+                <article class="chat" aria-label="Conversation history">
+                    <div class="msg">
+                        <div class="msgHeader">
+                            <span class="msgAuthor">Ada</span>
+                            <span class="msgTime">12:01</span>
+                        </div>
+                        <div class="msgBody markdown">
+                            <p><strong>Markdown</strong> preview placeholder.</p>
+                            <p>List:</p>
+                            <ul>
+                                <li>Item one</li>
+                                <li>Item two</li>
+                            </ul>
+                            <pre><code>console.log("hello");</code></pre>
+                        </div>
+                    </div>
+
+                    <div class="msg">
+                        <div class="msgHeader">
+                            <span class="msgAuthor">You</span>
+                            <span class="msgTime">12:02</span>
+                        </div>
+                        <div class="msgBody">
+                            <p>UTF-8 text renders inline; other content will be links later.</p>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section class="card" aria-label="Message input">
+                <div class="composer">
+                    <textarea class="composerInput" rows="3" placeholder="Message #general"></textarea>
+                    <div class="composerActions">
+                        <button class="btn" type="button">Send</button>
+                        <div class="muted">(disabled placeholder)</div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Column 3 -->
+        <aside class="col col-right" aria-label="Member list">
+            <section class="card" aria-label="Server members">
+                <div class="cardTitle">Members</div>
+
+                <ul class="memberList" role="list">
+                    <li class="member">
+                        <span class="statusDot online" aria-hidden="true"></span>
+                        <span class="name">Ada</span>
+                    </li>
+                    <li class="member">
+                        <span class="statusDot idle" aria-hidden="true"></span>
+                        <span class="name">Linus</span>
+                    </li>
+                    <li class="member">
+                        <span class="statusDot dnd" aria-hidden="true"></span>
+                        <span class="name">Grace</span>
+                    </li>
+                    <li class="member">
+                        <span class="statusDot offline" aria-hidden="true"></span>
+                        <span class="name">Turing</span>
+                    </li>
+                </ul>
+            </section>
+        </aside>
     </div>
 
     <script src="app.js"></script>
