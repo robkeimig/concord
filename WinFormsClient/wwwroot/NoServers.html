@@ -13,7 +13,8 @@
             --muted: #666666;
             --border: #dddddd;
             --hover: #000000;
-            --accent: #f2f2f2
+            --accent: #f2f2f2;
+            --arrow: #2b7cff;
         }
 
         @media (prefers-color-scheme: dark) {
@@ -24,6 +25,7 @@
                 --muted: #a0a0a0;
                 --border: #2a2a2a;
                 --hover: #ffffff;
+                --arrow: #2b7cff;
             }
         }
 
@@ -65,24 +67,54 @@
             color: var(--muted);
         }
 
+        /* Bottom-left hint arrow (points straight down toward the app chrome DDL) */
         .arrow {
-            display: inline-block;
-            margin-top: 0.5rem;
-            width: 24px;
-            height: 24px;
-            border-left: 2px solid var(--accent);
-            border-bottom: 2px solid var(--accent);
-            transform: rotate(-45deg);
-            animation: bounce 1.5s infinite;
+            position: fixed;
+            left: 0.5rem;
+            bottom: 0.75rem;
+            width: 44px;
+            height: 72px;
+            pointer-events: none;
+            opacity: 0.95;
+            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25));
+            animation: arrow-bounce 1.2s ease-in-out infinite;
+            z-index: 9999;
         }
 
-        @keyframes bounce {
+        /* Shaft */
+        .arrow::before {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 0;
+            width: 8px;
+            height: 46px;
+            background: var(--arrow);
+            border-radius: 999px;
+            transform: translateX(-50%);
+        }
+
+        /* Head */
+        .arrow::after {
+            content: "";
+            position: absolute;
+            left: 50%;
+            top: 44px;
+            width: 0;
+            height: 0;
+            border-left: 14px solid transparent;
+            border-right: 14px solid transparent;
+            border-top: 20px solid var(--arrow);
+            transform: translateX(-50%);
+        }
+
+        @keyframes arrow-bounce {
             0%, 100% {
-                transform: translateY(0) rotate(-45deg);
+                transform: translateY(0);
             }
 
             50% {
-                transform: translateY(6px) rotate(-45deg);
+                transform: translateY(-10px);
             }
         }
 
@@ -112,12 +144,12 @@
             Add a server below to get started.
         </p>
 
-        <div class="arrow"></div>
-
         <p class="cta">
             If you would like to create a server, click
             <a href="#">here</a> for more details.
         </p>
     </div>
+
+    <div class="arrow" aria-hidden="true"></div>
 </body>
 </html>

@@ -52,7 +52,7 @@
             MainPanel.Dock = DockStyle.Fill;
             MainPanel.Location = new Point(0, 0);
             MainPanel.Name = "MainPanel";
-            MainPanel.Size = new Size(800, 450);
+            MainPanel.Size = new Size(1301, 762);
             MainPanel.TabIndex = 0;
             // 
             // MainLayoutPanel
@@ -67,7 +67,7 @@
             MainLayoutPanel.RowCount = 2;
             MainLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 100F));
             MainLayoutPanel.RowStyles.Add(new RowStyle());
-            MainLayoutPanel.Size = new Size(800, 450);
+            MainLayoutPanel.Size = new Size(1301, 762);
             MainLayoutPanel.TabIndex = 3;
             // 
             // MainWebView
@@ -78,16 +78,16 @@
             MainWebView.Dock = DockStyle.Fill;
             MainWebView.Location = new Point(3, 3);
             MainWebView.Name = "MainWebView";
-            MainWebView.Size = new Size(794, 422);
+            MainWebView.Size = new Size(1295, 734);
             MainWebView.TabIndex = 0;
             MainWebView.ZoomFactor = 1D;
             // 
             // MainStatusStrip
             // 
             MainStatusStrip.Items.AddRange(new ToolStripItem[] { ServerDropDownButton });
-            MainStatusStrip.Location = new Point(0, 428);
+            MainStatusStrip.Location = new Point(0, 740);
             MainStatusStrip.Name = "MainStatusStrip";
-            MainStatusStrip.Size = new Size(800, 22);
+            MainStatusStrip.Size = new Size(1301, 22);
             MainStatusStrip.TabIndex = 1;
             MainStatusStrip.Text = "statusStrip1";
             // 
@@ -113,7 +113,7 @@
             LoadingPanel.Dock = DockStyle.Fill;
             LoadingPanel.Location = new Point(0, 0);
             LoadingPanel.Name = "LoadingPanel";
-            LoadingPanel.Size = new Size(800, 450);
+            LoadingPanel.Size = new Size(1301, 762);
             LoadingPanel.TabIndex = 1;
             // 
             // LoadingLayoutPanel
@@ -129,14 +129,14 @@
             LoadingLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
             LoadingLayoutPanel.RowStyles.Add(new RowStyle());
             LoadingLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
-            LoadingLayoutPanel.Size = new Size(800, 450);
+            LoadingLayoutPanel.Size = new Size(1301, 762);
             LoadingLayoutPanel.TabIndex = 0;
             // 
             // LoadingProgressBar
             // 
             LoadingProgressBar.Anchor = AnchorStyles.None;
             LoadingProgressBar.ForeColor = Color.DodgerBlue;
-            LoadingProgressBar.Location = new Point(280, 216);
+            LoadingProgressBar.Location = new Point(530, 372);
             LoadingProgressBar.MarqueeAnimationSpeed = 30;
             LoadingProgressBar.Name = "LoadingProgressBar";
             LoadingProgressBar.Size = new Size(240, 18);
@@ -149,7 +149,7 @@
             LoadingLabel.AutoSize = true;
             LoadingLabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
             LoadingLabel.ForeColor = Color.White;
-            LoadingLabel.Location = new Point(358, 92);
+            LoadingLabel.Location = new Point(608, 170);
             LoadingLabel.Name = "LoadingLabel";
             LoadingLabel.Padding = new Padding(0, 0, 0, 8);
             LoadingLabel.Size = new Size(84, 29);
@@ -160,7 +160,7 @@
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(800, 450);
+            ClientSize = new Size(1301, 762);
             Controls.Add(MainPanel);
             Controls.Add(LoadingPanel);
             Name = "MainForm";
