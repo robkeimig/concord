@@ -35,10 +35,15 @@
             ServerDropDownButton = new ToolStripDropDownButton();
             AddNewServerButton = new ToolStripMenuItem();
             LoadingPanel = new Panel();
+            LoadingLayoutPanel = new TableLayoutPanel();
+            LoadingProgressBar = new ProgressBar();
+            LoadingLabel = new Label();
             MainPanel.SuspendLayout();
             MainLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)MainWebView).BeginInit();
             MainStatusStrip.SuspendLayout();
+            LoadingPanel.SuspendLayout();
+            LoadingLayoutPanel.SuspendLayout();
             SuspendLayout();
             // 
             // MainPanel
@@ -103,11 +108,50 @@
             // 
             // LoadingPanel
             // 
+            LoadingPanel.BackColor = Color.FromArgb(32, 32, 32);
+            LoadingPanel.Controls.Add(LoadingLayoutPanel);
             LoadingPanel.Dock = DockStyle.Fill;
             LoadingPanel.Location = new Point(0, 0);
             LoadingPanel.Name = "LoadingPanel";
             LoadingPanel.Size = new Size(800, 450);
             LoadingPanel.TabIndex = 1;
+            // 
+            // LoadingLayoutPanel
+            // 
+            LoadingLayoutPanel.ColumnCount = 1;
+            LoadingLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
+            LoadingLayoutPanel.Controls.Add(LoadingProgressBar, 0, 1);
+            LoadingLayoutPanel.Controls.Add(LoadingLabel, 0, 0);
+            LoadingLayoutPanel.Dock = DockStyle.Fill;
+            LoadingLayoutPanel.Location = new Point(0, 0);
+            LoadingLayoutPanel.Name = "LoadingLayoutPanel";
+            LoadingLayoutPanel.RowCount = 3;
+            LoadingLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            LoadingLayoutPanel.RowStyles.Add(new RowStyle());
+            LoadingLayoutPanel.RowStyles.Add(new RowStyle(SizeType.Percent, 50F));
+            LoadingLayoutPanel.Size = new Size(800, 450);
+            LoadingLayoutPanel.TabIndex = 0;
+            // 
+            // LoadingProgressBar
+            // 
+            LoadingProgressBar.Anchor = AnchorStyles.None;
+            LoadingProgressBar.ForeColor = Color.DodgerBlue;
+            LoadingProgressBar.MarqueeAnimationSpeed = 30;
+            LoadingProgressBar.Name = "LoadingProgressBar";
+            LoadingProgressBar.Size = new Size(240, 18);
+            LoadingProgressBar.Style = ProgressBarStyle.Marquee;
+            LoadingProgressBar.TabIndex = 0;
+            // 
+            // LoadingLabel
+            // 
+            LoadingLabel.Anchor = AnchorStyles.None;
+            LoadingLabel.AutoSize = true;
+            LoadingLabel.ForeColor = Color.White;
+            LoadingLabel.Name = "LoadingLabel";
+            LoadingLabel.Padding = new Padding(0, 0, 0, 8);
+            LoadingLabel.Size = new Size(126, 23);
+            LoadingLabel.TabIndex = 1;
+            LoadingLabel.Text = "Loading Concord…";
             // 
             // MainForm
             // 
@@ -124,6 +168,9 @@
             ((System.ComponentModel.ISupportInitialize)MainWebView).EndInit();
             MainStatusStrip.ResumeLayout(false);
             MainStatusStrip.PerformLayout();
+            LoadingPanel.ResumeLayout(false);
+            LoadingLayoutPanel.ResumeLayout(false);
+            LoadingLayoutPanel.PerformLayout();
             ResumeLayout(false);
         }
 
@@ -136,5 +183,8 @@
         private ToolStripDropDownButton ServerDropDownButton;
         private ToolStripMenuItem AddNewServerButton;
         private Panel LoadingPanel;
+        private TableLayoutPanel LoadingLayoutPanel;
+        private ProgressBar LoadingProgressBar;
+        private Label LoadingLabel;
     }
 }
