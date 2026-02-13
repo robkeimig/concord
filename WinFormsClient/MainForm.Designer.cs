@@ -136,6 +136,7 @@
             // 
             LoadingProgressBar.Anchor = AnchorStyles.None;
             LoadingProgressBar.ForeColor = Color.DodgerBlue;
+            LoadingProgressBar.Location = new Point(280, 216);
             LoadingProgressBar.MarqueeAnimationSpeed = 30;
             LoadingProgressBar.Name = "LoadingProgressBar";
             LoadingProgressBar.Size = new Size(240, 18);
@@ -146,12 +147,14 @@
             // 
             LoadingLabel.Anchor = AnchorStyles.None;
             LoadingLabel.AutoSize = true;
+            LoadingLabel.Font = new Font("Segoe UI", 12F, FontStyle.Bold, GraphicsUnit.Point, 0);
             LoadingLabel.ForeColor = Color.White;
+            LoadingLabel.Location = new Point(358, 92);
             LoadingLabel.Name = "LoadingLabel";
             LoadingLabel.Padding = new Padding(0, 0, 0, 8);
-            LoadingLabel.Size = new Size(126, 23);
+            LoadingLabel.Size = new Size(84, 29);
             LoadingLabel.TabIndex = 1;
-            LoadingLabel.Text = "Loading Concord…";
+            LoadingLabel.Text = "Loading...";
             // 
             // MainForm
             // 
