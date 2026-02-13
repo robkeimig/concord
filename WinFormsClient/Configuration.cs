@@ -13,9 +13,9 @@ public class Configuration
 
 
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid? LastServerId { get; set; }
     public Keys PushToTalkKey { get; set; } = Keys.None;
     public List<Server> Servers { get; set; } = [];
-    public List<Blob> Blobs { get; set; } = [];
 
     public static string ConfigurationFilePath()
     {
@@ -37,7 +37,6 @@ public class Configuration
         var json = File.ReadAllText(path);
         var config = JsonSerializer.Deserialize<Configuration>(json, SerializerOptions) ?? new Configuration();
         config.Servers ??= [];
-        config.Blobs ??= [];
         return config;
     }
 
