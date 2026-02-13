@@ -10,9 +10,22 @@ namespace WinFormsClient
         public MainForm()
         {
             InitializeComponent();
+            LoadingPanel.BringToFront();
             Configuration = Configuration.Load();
             EnsureWebView();
+            //ApplyDarkTheme(this);
         }
+
+        //void ApplyDarkTheme(Control parent)
+        //{
+        //    parent.BackColor = Color.FromArgb(32, 32, 32);
+        //    parent.ForeColor = Color.White;
+
+        //    foreach (Control control in parent.Controls)
+        //    {
+        //        ApplyDarkTheme(control);
+        //    }
+        //}
 
         private async void EnsureWebView()
         {
@@ -55,7 +68,7 @@ namespace WinFormsClient
         {
             if (!Initialized)
             {
-                //LoadingPanel.Visible = false;
+                LoadingPanel.Visible = false;
                 Initialized = true;
             }
         }
