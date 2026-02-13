@@ -72,13 +72,30 @@
             position: fixed;
             left: 0.5rem;
             bottom: 0.75rem;
-            width: 44px;
-            height: 72px;
+            width: 88px;
+            height: 144px;
             pointer-events: none;
             opacity: 0.95;
-            filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25));
-            animation: arrow-bounce 1.2s ease-in-out infinite;
             z-index: 9999;
+
+            /* Particles (painted on the container) */
+            background:
+                radial-gradient(circle at 18% 22%, rgba(43,124,255,0.9) 0 2px, transparent 3px),
+                radial-gradient(circle at 78% 18%, rgba(43,124,255,0.8) 0 1.5px, transparent 3px),
+                radial-gradient(circle at 30% 70%, rgba(43,124,255,0.7) 0 1.8px, transparent 3px),
+                radial-gradient(circle at 70% 62%, rgba(43,124,255,0.6) 0 1.6px, transparent 3px),
+                radial-gradient(circle at 52% 40%, rgba(255,255,255,0.65) 0 1.2px, transparent 3px);
+            border-radius: 999px;
+
+            /* Keep bounce + particle float together (avoid later overrides) */
+            animation:
+                arrow-bounce 1.2s ease-in-out infinite,
+                particle-float 2.2s ease-in-out infinite;
+
+            /* Base shadow + extra glow */
+            filter:
+                drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25))
+                drop-shadow(0 0 16px rgba(43, 124, 255, 0.35));
         }
 
         /* Shaft */
@@ -87,11 +104,14 @@
             position: absolute;
             left: 50%;
             top: 0;
-            width: 8px;
-            height: 46px;
+            width: 16px;
+            height: 92px;
             background: var(--arrow);
             border-radius: 999px;
             transform: translateX(-50%);
+            box-shadow:
+                0 0 18px rgba(43, 124, 255, 0.55),
+                0 0 40px rgba(43, 124, 255, 0.25);
         }
 
         /* Head */
@@ -99,22 +119,49 @@
             content: "";
             position: absolute;
             left: 50%;
-            top: 44px;
+            top: 88px;
             width: 0;
             height: 0;
-            border-left: 14px solid transparent;
-            border-right: 14px solid transparent;
-            border-top: 20px solid var(--arrow);
+            border-left: 28px solid transparent;
+            border-right: 28px solid transparent;
+            border-top: 40px solid var(--arrow);
             transform: translateX(-50%);
+            filter: drop-shadow(0 0 18px rgba(43, 124, 255, 0.55));
         }
 
         @keyframes arrow-bounce {
             0%, 100% {
-                transform: translateY(0);
+                transform: translate3d(0, 0, 0);
             }
 
             50% {
-                transform: translateY(-10px);
+                transform: translate3d(0, -10px, 0);
+            }
+        }
+
+        @keyframes particle-float {
+            0%, 100% {
+                background-position:
+                    0px 0px,
+                    0px 0px,
+                    0px 0px,
+                    0px 0px,
+                    0px 0px;
+                filter:
+                    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25))
+                    drop-shadow(0 0 16px rgba(43, 124, 255, 0.35));
+            }
+
+            50% {
+                background-position:
+                    4px -6px,
+                    -3px -5px,
+                    3px 5px,
+                    -4px 4px,
+                    2px -2px;
+                filter:
+                    drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25))
+                    drop-shadow(0 0 22px rgba(43, 124, 255, 0.55));
             }
         }
 
