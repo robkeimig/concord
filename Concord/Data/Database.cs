@@ -53,8 +53,20 @@ CREATE TABLE {UsersTable.TableName} (
     [{nameof(UsersTable.PrimaryColor)}] TEXT,
     [{nameof(UsersTable.AccessToken)}] BINARY);
 
+CREATE TABLE {ChannelsTable.TableName} (
+    [{nameof(ChannelsTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(ChannelsTable.DisplayName)}] TEXT,
+    [{nameof(ChannelsTable.Type)}] INTEGER,
+    [{nameof(ChannelsTable.CreatedUnixTimestamp)}] INTEGER);
+
 CREATE TABLE {MessagesTable.TableName} (
-);
+    [{nameof(MessagesTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(MessagesTable.AuthorUserId)}] INTEGER,
+    [{nameof(MessagesTable.ChannelId)}] INTEGER,
+    [{nameof(MessagesTable.Content)}] TEXT,
+    [{nameof(MessagesTable.CreatedUnixTimestamp)}] INTEGER,
+    [{nameof(MessagesTable.EditedUnixTimestamp)}] INTEGER);
+
 ");
         }
     }
