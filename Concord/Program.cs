@@ -21,7 +21,7 @@ Directory.CreateDirectory(acmeDir);
 var database = new Database();
 using var sql = database.Connection;
 
-sql.BootstrapUsers();
+await sql.BootstrapUsers();
 builder.Services.AddSingleton(database);
 builder.Services.AddSingleton<IAcmeHttpChallengeStore, AcmeHttpChallengeStore>();
 builder.Services.AddSingleton<IAcmeAccountStore>(_ => new FileAcmeAccountStore(acmeDir));

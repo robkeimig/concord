@@ -1,4 +1,5 @@
-﻿using Dapper;
+﻿using Concord.Services;
+using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace Concord.Data;
@@ -26,7 +27,7 @@ public class UsersTable
 
 public static class UserDataExtensions
 {
-    public static void BootstrapUsers(this SqliteConnection sql)
+    public static async Task BootstrapUsers(this SqliteConnection sql)
     {
         var userCount = sql.ExecuteScalar<long>($"SELECT COUNT(1) FROM {UsersTable.TableName};");
         if (userCount > 0)
@@ -34,14 +35,26 @@ public static class UserDataExtensions
 
         // Invitation creation/search lives in Concord/Data/Invitation.cs
         var existingInvitationCode = sql.GetLatestInvitationCode();
-        if (!string.IsNullOrWhiteSpace(existingInvitationCode))
-        {
-            Console.WriteLine(existingInvitationCode);
-            return;
-        }
+        var code = !string.IsNullOrWhiteSpace(existingInvitationCode)
+            ? existingInvitationCode!
+            : sql.CreatePermanentInvitation();
 
-        var code = sql.CreatePermanentInvitation();
-        Console.WriteLine(code);
+        var publicIpService = new AmazonPublicIpService(new HttpClient(), new LoggerFactory().CreateLogger<AmazonPublicIpService>());    
+        var publicIp = await publicIpService.GetPublicIpAsync();
+
+        Console.WriteLine();
+        Console.WriteLine();
+        Console.BackgroundColor = ConsoleColor.Black;
+        Console.ForegroundColor = ConsoleColor.Green;
+        Console.WriteLine("Use the following information to create the first administrator account:");
+        Console.WriteLine();
+        Console.WriteLine($"  Server IP:       {publicIp}");
+        Console.WriteLine($"  Invitation code: {code}");
+        Console.WriteLine();
+        Console.WriteLine("In the desktop client, choose 'Add server' and enter the Server IP and Invitation code.");
+        Console.ResetColor();
+        Console.WriteLine();
+        Console.WriteLine();
     }
 
     static User Map(UsersTable row) => new User
