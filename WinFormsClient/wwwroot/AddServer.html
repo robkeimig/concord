@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add Server</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+        /* Page-specific typography tweaks */
+        h1 {
+            font-size: 1.6rem;
+        }
+
+        p {
+            margin: 0.75rem 0 1.25rem;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card card-left">
+        <h1>Add a server</h1>
+        <p id="subtitle">Enter the server IP address and the invitation token you received.</p>
+
+        <div id="step1" class="step active" aria-label="Validate invitation">
+            <form id="validateForm">
+                <label for="ipAddress">IP address</label>
+                <input id="ipAddress" name="ipAddress" type="text" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off" required />
+
+                <label for="invitationToken">Invitation token</label>
+                <input id="invitationToken" name="invitationToken" type="text" placeholder="XXXX-XXXX-XXXX" autocomplete="off" required />
+
+                <div id="error1" class="error" role="alert"></div>
+
+                <div class="row">
+                    <button id="validateBtn" class="primary" type="submit">Validate</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="step2" class="step" aria-label="Create member account">
+            <form id="acceptForm">
+                <label for="memberName">Your name</label>
+                <input id="memberName" name="memberName" type="text" placeholder="Your name" autocomplete="off" required />
+
+                <label for="primaryColor">Preferred color</label>
+                <input id="primaryColor" name="primaryColor" type="color" value="#4f46e5" aria-label="Preferred color" />
+
+                <div id="error2" class="error" role="alert"></div>
+                <div id="success2" class="success" role="status"></div>
+
+                <div class="row">
+                    <button id="backBtn" type="button">Back</button>
+                    <button id="acceptBtn" class="primary" type="submit">Create account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const subtitle = document.getElementById('subtitle');
+
+        const validateForm = document.getElementById('validateForm');
+        const ipAddress = document.getElementById('ipAddress');
+        const invitationToken = document.getElementById('invitationToken');
+        const validateBtn = document.getElementById('validateBtn');
+        const error1 = document.getElementById('error1');
+
+        const acceptForm = document.getElementById('acceptForm');
+        const memberName = document.getElementById('memberName');
+        const primaryColor = document.getElementById('primaryColor');
+        const acceptBtn = document.getElementById('acceptBtn');
+        const backBtn = document.getElementById('backBtn');
+        const error2 = document.getElementById('error2');
+        const success2 = document.getElementById('success2');
+
+        function hostAvailable() {
+            return !!(window.chrome && window.chrome.webview);
+        }
+
+        function show(el) { el.classList.add('active'); }
+        function hide(el) { el.classList.remove('active'); }
+
+        function showError(target, message) {
+            target.textContent = message || '';
+            target.style.display = message ? 'block' : 'none';
+        }
+
+        function showSuccess(message) {
+            success2.textContent = message || '';
+            success2.style.display = message ? 'block' : 'none';
+        }
+
+        function isStandardHost(host) {
+            const value = (host || '').trim();
+            if (!value) return false;
+            // For now: no explicit port, and no URL scheme.
+            if (value.includes('://')) return false;
+            if (value.includes(':')) return false;
+            return true;
+        }
+
+        function goToStep1() {
+            show(step1);
+            hide(step2);
+            subtitle.textContent = 'Enter the server IP address and the invitation token you received.';
+            showError(error2, '');
+            showSuccess('');
+        }
+
+        function goToStep2() {
+            hide(step1);
+            show(step2);
+            subtitle.textContent = 'Invitation validated. Create your account.';
+            memberName.focus();
+        }
+
+        validateForm.addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            showError(error1, '');
+
+            const ip = (ipAddress.value || '').trim();
+            const token = (invitationToken.value || '').trim();
+
+            if (!ip) {
+                showError(error1, 'Please enter an IP address.');
+                ipAddress.focus();
+                return;
+            }
+
+            if (!isStandardHost(ip)) {
+                showError(error1, 'Please enter a server IP address without a port.');
+                ipAddress.focus();
+                return;
+            }
+
+            if (!token) {
+                showError(error1, 'Please enter an invitation token.');
+                invitationToken.focus();
+                return;
+            }
+
+            if (!hostAvailable()) {
+                showError(error1, 'This page must be hosted in the desktop client.');
+                return;
+            }
+
+            validateBtn.disabled = true;
+            window.chrome.webview.postMessage({
+                type: 'addServer',
+                payload: { ipAddress: ip, invitationToken: token }
+            });
+
+            // Host will respond via postMessage; keep UI responsive.
+            setTimeout(() => { validateBtn.disabled = false; }, 1000);
+        });
+
+        backBtn.addEventListener('click', () => {
+            goToStep1();
+        });
+
+        acceptForm.addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            showError(error2, '');
+            showSuccess('');
+
+            const name = (memberName.value || '').trim();
+            const color = (primaryColor.value || '').trim();
+
+            if (!name) {
+                showError(error2, 'Please enter your name.');
+                memberName.focus();
+                return;
+            }
+
+            if (!hostAvailable()) {
+                showError(error2, 'This page must be hosted in the desktop client.');
+                return;
+            }
+
+            acceptBtn.disabled = true;
+            window.chrome.webview.postMessage({
+                type: 'addServer/createMember',
+                payload: {
+                    invitationToken: (invitationToken.value || '').trim(),
+                    name,
+                    primaryColor: color
+                }
+            });
+
+            setTimeout(() => { acceptBtn.disabled = false; }, 1000);
+        });
+
+        // Receive host responses
+        if (hostAvailable()) {
+            window.chrome.webview.addEventListener('message', (event) => {
+                const msg = event.data || {};
+                const type = (msg.type || '').toLowerCase();
+                const payload = msg.payload || {};
+
+                if (type === 'addserver/validated') {
+                    if (payload.ok) {
+                        goToStep2();
+                    } else {
+                        showError(error1, payload.message || 'Invitation is not valid.');
+                    }
+                }
+
+                if (type === 'addserver/membercreated') {
+                    if (payload.ok) {
+                        showSuccess('Account created. Connecting...');
+                    } else {
+                        showError(error2, payload.message || 'Failed to create account.');
+                    }
+                }
+            });
+        }
+    </script>
+</body>
+</html>

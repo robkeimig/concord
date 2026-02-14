@@ -3,6 +3,7 @@ using System.Net.WebSockets;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
+using Concord.Data;
 using Concord.Services;
 using Concord.Services.Acme;
 
@@ -17,7 +18,11 @@ builder.Services.AddHttpClient<IPublicIpService, AmazonPublicIpService>(client =
 var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
 var acmeDir = Path.Combine(dataDir, "acme");
 Directory.CreateDirectory(acmeDir);
+var database = new Database();
+using var sql = database.Connection;
 
+await sql.BootstrapUsers();
+builder.Services.AddSingleton(database);
 builder.Services.AddSingleton<IAcmeHttpChallengeStore, AcmeHttpChallengeStore>();
 builder.Services.AddSingleton<IAcmeAccountStore>(_ => new FileAcmeAccountStore(acmeDir));
 builder.Services.AddHttpClient<IAcmeClient, AcmeClient>().ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
