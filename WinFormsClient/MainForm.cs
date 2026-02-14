@@ -24,6 +24,10 @@ namespace WinFormsClient
 
         private void NavigateToAddServer()
         {
+            // Show loading UI until navigation completes.
+            LoadingPanel.BringToFront();
+            LoadingPanel.Visible = true;
+
             if (MainWebView?.CoreWebView2 == null)
             {
                 // WebView is still initializing; fall back to setting Source.
@@ -221,9 +225,11 @@ namespace WinFormsClient
 
         private void HandleWebViewNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
         {
+            // Hide loading UI once navigation completes.
+            LoadingPanel.Visible = false;
+
             if (!Initialized)
             {
-                LoadingPanel.Visible = false;
                 Initialized = true;
             }
         }
