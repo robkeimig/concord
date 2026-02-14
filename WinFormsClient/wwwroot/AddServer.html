@@ -36,7 +36,6 @@
             <form id="validateForm">
                 <label for="ipAddress">IP address</label>
                 <input id="ipAddress" name="ipAddress" type="text" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off" required />
-                <div class="hint">Include port if needed (example: 192.168.1.50:5001).</div>
 
                 <label for="invitationToken">Invitation token</label>
                 <input id="invitationToken" name="invitationToken" type="text" placeholder="XXXX-XXXX-XXXX" autocomplete="off" required />
@@ -49,17 +48,20 @@
             </form>
         </div>
 
-        <div id="step2" class="step" aria-label="Choose server name">
+        <div id="step2" class="step" aria-label="Create member account">
             <form id="acceptForm">
-                <label for="serverName">Server name</label>
-                <input id="serverName" name="serverName" type="text" placeholder="My Server" autocomplete="off" required />
+                <label for="memberName">Your name</label>
+                <input id="memberName" name="memberName" type="text" placeholder="Your name" autocomplete="off" required />
+
+                <label for="primaryColor">Preferred color</label>
+                <input id="primaryColor" name="primaryColor" type="color" value="#4f46e5" aria-label="Preferred color" />
 
                 <div id="error2" class="error" role="alert"></div>
                 <div id="success2" class="success" role="status"></div>
 
                 <div class="row">
                     <button id="backBtn" type="button">Back</button>
-                    <button id="acceptBtn" class="primary" type="submit">Add server</button>
+                    <button id="acceptBtn" class="primary" type="submit">Create account</button>
                 </div>
             </form>
         </div>
@@ -77,7 +79,8 @@
         const error1 = document.getElementById('error1');
 
         const acceptForm = document.getElementById('acceptForm');
-        const serverName = document.getElementById('serverName');
+        const memberName = document.getElementById('memberName');
+        const primaryColor = document.getElementById('primaryColor');
         const acceptBtn = document.getElementById('acceptBtn');
         const backBtn = document.getElementById('backBtn');
         const error2 = document.getElementById('error2');
@@ -100,6 +103,15 @@
             success2.style.display = message ? 'block' : 'none';
         }
 
+        function isStandardHost(host) {
+            const value = (host || '').trim();
+            if (!value) return false;
+            // For now: no explicit port, and no URL scheme.
+            if (value.includes('://')) return false;
+            if (value.includes(':')) return false;
+            return true;
+        }
+
         function goToStep1() {
             show(step1);
             hide(step2);
@@ -111,8 +123,8 @@
         function goToStep2() {
             hide(step1);
             show(step2);
-            subtitle.textContent = 'Invitation validated. Choose a name for this server.';
-            serverName.focus();
+            subtitle.textContent = 'Invitation validated. Create your account.';
+            memberName.focus();
         }
 
         validateForm.addEventListener('submit', (ev) => {
@@ -124,6 +136,12 @@
 
             if (!ip) {
                 showError(error1, 'Please enter an IP address.');
+                ipAddress.focus();
+                return;
+            }
+
+            if (!isStandardHost(ip)) {
+                showError(error1, 'Please enter a server IP address without a port.');
                 ipAddress.focus();
                 return;
             }
@@ -158,10 +176,12 @@
             showError(error2, '');
             showSuccess('');
 
-            const name = (serverName.value || '').trim();
+            const name = (memberName.value || '').trim();
+            const color = (primaryColor.value || '').trim();
+
             if (!name) {
-                showError(error2, 'Please enter a name.');
-                serverName.focus();
+                showError(error2, 'Please enter your name.');
+                memberName.focus();
                 return;
             }
 
@@ -172,8 +192,12 @@
 
             acceptBtn.disabled = true;
             window.chrome.webview.postMessage({
-                type: 'addServer/accept',
-                payload: { name }
+                type: 'addServer/createMember',
+                payload: {
+                    invitationToken: (invitationToken.value || '').trim(),
+                    name,
+                    primaryColor: color
+                }
             });
 
             setTimeout(() => { acceptBtn.disabled = false; }, 1000);
@@ -194,11 +218,11 @@
                     }
                 }
 
-                if (type === 'addserver/accepted') {
+                if (type === 'addserver/membercreated') {
                     if (payload.ok) {
-                        showSuccess('Server added. Connecting...');
+                        showSuccess('Account created. Connecting...');
                     } else {
-                        showError(error2, payload.message || 'Failed to add server.');
+                        showError(error2, payload.message || 'Failed to create account.');
                     }
                 }
             });

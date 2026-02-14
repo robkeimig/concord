@@ -8,6 +8,9 @@
     --arrow: #2b7cff;
     --primary: #2b7cff;
     --danger: #cc2b2b;
+    --button-bg: var(--accent);
+    --button-text: var(--text);
+    --button-border: var(--border);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -21,6 +24,9 @@
         --arrow: #2b7cff;
         --primary: #2b7cff;
         --danger: #ff6b6b;
+        --button-bg: transparent;
+        --button-text: var(--text);
+        --button-border: var(--border);
     }
 }
 
@@ -79,6 +85,29 @@ input {
     outline: none;
 }
 
+/* Make the color picker render as a small, obvious swatch instead of a thin line */
+input[type="color"] {
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border-radius: 10px;
+    cursor: pointer;
+}
+
+input[type="color"]::-webkit-color-swatch-wrapper {
+    padding: 6px;
+}
+
+input[type="color"]::-webkit-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
+input[type="color"]::-moz-color-swatch {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+}
+
 input:focus {
     border-color: var(--primary);
     box-shadow: 0 0 0 3px rgba(43, 124, 255, 0.18);
@@ -93,9 +122,9 @@ input:focus {
 }
 
 button {
-    border: 1px solid var(--border);
-    background: var(--accent);
-    color: var(--text);
+    border: 1px solid var(--button-border);
+    background: var(--button-bg);
+    color: var(--button-text);
     border-radius: 12px;
     padding: 0.7rem 1rem;
     cursor: pointer;
