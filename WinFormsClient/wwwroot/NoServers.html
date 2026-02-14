@@ -5,140 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Welcome</title>
 
+    <link rel="stylesheet" href="style.css" />
+
     <style>
-        :root {
-            --bg: #f5f5f5;
-            --card: #ffffff;
-            --text: #111111;
-            --muted: #666666;
-            --border: #dddddd;
-            --hover: #000000;
-            --accent: #f2f2f2;
-            --arrow: #2b7cff;
-        }
-
-        @media (prefers-color-scheme: dark) {
-            :root {
-                --bg: #0f0f0f;
-                --card: #1a1a1a;
-                --text: #f2f2f2;
-                --muted: #a0a0a0;
-                --border: #2a2a2a;
-                --hover: #ffffff;
-                --arrow: #2b7cff;
-            }
-        }
-
-        * {
-            box-sizing: border-box;
-        }
-
-        body {
-            margin: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-            background: var(--bg);
-            color: var(--text);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 100vh;
-        }
-
-        .card {
-            background: var(--card);
-            padding: 2.5rem;
-            border-radius: 16px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-            max-width: 520px;
-            width: 90%;
-            text-align: center;
-            border: 1px solid var(--border);
-        }
-
+        /* Page-specific typography tweaks */
         h1 {
-            margin-top: 0;
             font-size: 1.8rem;
-            font-weight: 600;
         }
 
         p {
             margin: 1rem 0;
-            line-height: 1.6;
-            color: var(--muted);
         }
-
-        /* Bottom-left hint arrow (points straight down toward the app chrome DDL) */
-        .arrow {
-            position: fixed;
-            left: 0.5rem;
-            bottom: 0.75rem;
-            width: 88px;
-            height: 144px;
-            pointer-events: none;
-            opacity: 0.95;
-            z-index: 9999;
-
-            /* Keep bounce */
-            animation: arrow-bounce 1.2s ease-in-out infinite;
-
-            /* Base shadow + extra glow */
-            filter:
-                drop-shadow(0 2px 2px rgba(0, 0, 0, 0.25))
-                drop-shadow(0 0 18px rgba(43, 124, 255, 0.45));
-        }
-
-        /* Shaft */
-        .arrow::before {
-            content: "";
-            position: absolute;
-            left: 50%;
-            top: 0;
-            width: 16px;
-            height: 92px;
-            background: var(--arrow);
-            border-radius: 999px;
-            transform: translateX(-50%);
-            box-shadow:
-                0 0 18px rgba(43, 124, 255, 0.55),
-                0 0 40px rgba(43, 124, 255, 0.25);
-        }
-
-        /* Head */
-        .arrow::after {
-            content: "";
-            position: absolute;
-            left: 50%;
-            top: 88px;
-            width: 0;
-            height: 0;
-            border-left: 28px solid transparent;
-            border-right: 28px solid transparent;
-            border-top: 40px solid var(--arrow);
-            transform: translateX(-50%);
-            filter: drop-shadow(0 0 18px rgba(43, 124, 255, 0.55));
-        }
-
-        @keyframes arrow-bounce {
-            0%, 100% {
-                transform: translate3d(0, 0, 0);
-            }
-
-            50% {
-                transform: translate3d(0, -10px, 0);
-            }
-        }
-
-        a {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-            a:hover {
-                color: var(--accent-hover);
-                text-decoration: underline;
-            }
 
         .cta {
             margin-top: 1.5rem;
@@ -147,7 +24,7 @@
 </head>
 
 <body>
-    <div class="card">
+    <div class="card card-center">
         <h1>Welcome 👋</h1>
 
         <p>
@@ -160,6 +37,6 @@
         </p>
     </div>
 
-    <div class="arrow" aria-hidden="true"></div>
+    <div class="hint-arrow" aria-hidden="true"></div>
 </body>
 </html>
