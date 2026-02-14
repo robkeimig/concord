@@ -32,29 +32,15 @@ public static class UserDataExtensions
         if (userCount > 0)
             return;
 
-        var existingInvitationCode = sql.ExecuteScalar<string?>(
-            $"SELECT [{nameof(InvitationsTable.Code)}] FROM {InvitationsTable.TableName} ORDER BY [{nameof(InvitationsTable.CreatedUnixTimestamp)}] DESC LIMIT 1;");
-
+        // Invitation creation/search lives in Concord/Data/Invitation.cs
+        var existingInvitationCode = sql.GetLatestInvitationCode();
         if (!string.IsNullOrWhiteSpace(existingInvitationCode))
         {
             Console.WriteLine(existingInvitationCode);
             return;
         }
 
-        var code = Guid.NewGuid().ToString("n");
-
-        sql.Execute($@"
-INSERT INTO {InvitationsTable.TableName}
-    ([{nameof(InvitationsTable.Code)}], [{nameof(InvitationsTable.CreatedUnixTimestamp)}], [{nameof(InvitationsTable.IsPermanent)}])
-VALUES
-    (@Code, @CreatedUnixTimestamp, @IsPermanent);",
-            new
-            {
-                Code = code,
-                CreatedUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
-                IsPermanent = 1
-            });
-
+        var code = sql.CreatePermanentInvitation();
         Console.WriteLine(code);
     }
 
@@ -63,7 +49,7 @@ VALUES
         Id = row.Id,
         CreatedUtc = DateTimeOffset.FromUnixTimeSeconds(row.CreatedUnixTimestamp).UtcDateTime,
         AccessedUtc = DateTimeOffset.FromUnixTimeSeconds(row.CreatedUnixTimestamp).UtcDateTime,
-        PrimaryColor = row.PrimaryColor,    
+        PrimaryColor = row.PrimaryColor,
         DisplayName = row.DisplayName,
     };
 

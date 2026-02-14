@@ -68,6 +68,12 @@ CREATE TABLE {MessagesTable.TableName} (
     [{nameof(MessagesTable.CreatedUnixTimestamp)}] INTEGER,
     [{nameof(MessagesTable.EditedUnixTimestamp)}] INTEGER);
 
+CREATE TABLE {InvitationsTable.TableName} (
+    [{nameof(InvitationsTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(InvitationsTable.Code)}] TEXT,
+    [{nameof(InvitationsTable.CreatedUnixTimestamp)}] INTEGER,
+    [{nameof(InvitationsTable.IsPermanent)}] INTEGER);
+
 ");
         }
     }

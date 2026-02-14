@@ -1,4 +1,5 @@
-﻿using Microsoft.Data.Sqlite;
+﻿using Dapper;
+using Microsoft.Data.Sqlite;
 
 namespace Concord.Data;
 
@@ -22,6 +23,28 @@ public class InvitationsTable
 
 public static class InvitationDataExtensions
 {
+    public static string? GetLatestInvitationCode(this SqliteConnection sql)
+        => sql.ExecuteScalar<string?>($"SELECT [{nameof(InvitationsTable.Code)}] FROM {InvitationsTable.TableName} ORDER BY [{nameof(InvitationsTable.CreatedUnixTimestamp)}] DESC LIMIT 1;");
+
+    public static string CreatePermanentInvitation(this SqliteConnection sql)
+    {
+        var code = Guid.NewGuid().ToString("n");
+
+        sql.Execute($@"
+INSERT INTO {InvitationsTable.TableName}
+    ([{nameof(InvitationsTable.Code)}], [{nameof(InvitationsTable.CreatedUnixTimestamp)}], [{nameof(InvitationsTable.IsPermanent)}])
+VALUES
+    (@Code, @CreatedUnixTimestamp, @IsPermanent);",
+            new
+            {
+                Code = code,
+                CreatedUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                IsPermanent = 1
+            });
+
+        return code;
+    }
+
     static Invitation Map(InvitationsTable row) => new Invitation
     {
         Id = row.Id,
