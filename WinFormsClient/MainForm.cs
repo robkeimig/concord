@@ -27,14 +27,6 @@ namespace WinFormsClient
             // Show loading UI until navigation completes.
             LoadingPanel.BringToFront();
             LoadingPanel.Visible = true;
-
-            if (MainWebView?.CoreWebView2 == null)
-            {
-                // WebView is still initializing; fall back to setting Source.
-                MainWebView.Source = new Uri("https://app/AddServer.html");
-                return;
-            }
-
             PendingAddServerRequest = null;
             MainWebView.CoreWebView2.Navigate("https://app/AddServer.html");
         }
