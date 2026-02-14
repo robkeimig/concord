@@ -1,4 +1,7 @@
-﻿namespace Concord.Data;
+﻿using Dapper;
+using Microsoft.Data.Sqlite;
+
+namespace Concord.Data;
 
 public class User
 {
@@ -23,6 +26,38 @@ public class UsersTable
 
 public static class UserDataExtensions
 {
+    public static void BootstrapUsers(this SqliteConnection sql)
+    {
+        var userCount = sql.ExecuteScalar<long>($"SELECT COUNT(1) FROM {UsersTable.TableName};");
+        if (userCount > 0)
+            return;
+
+        var existingInvitationCode = sql.ExecuteScalar<string?>(
+            $"SELECT [{nameof(InvitationsTable.Code)}] FROM {InvitationsTable.TableName} ORDER BY [{nameof(InvitationsTable.CreatedUnixTimestamp)}] DESC LIMIT 1;");
+
+        if (!string.IsNullOrWhiteSpace(existingInvitationCode))
+        {
+            Console.WriteLine(existingInvitationCode);
+            return;
+        }
+
+        var code = Guid.NewGuid().ToString("n");
+
+        sql.Execute($@"
+INSERT INTO {InvitationsTable.TableName}
+    ([{nameof(InvitationsTable.Code)}], [{nameof(InvitationsTable.CreatedUnixTimestamp)}], [{nameof(InvitationsTable.IsPermanent)}])
+VALUES
+    (@Code, @CreatedUnixTimestamp, @IsPermanent);",
+            new
+            {
+                Code = code,
+                CreatedUnixTimestamp = DateTimeOffset.UtcNow.ToUnixTimeSeconds(),
+                IsPermanent = 1
+            });
+
+        Console.WriteLine(code);
+    }
+
     static User Map(UsersTable row) => new User
     {
         Id = row.Id,

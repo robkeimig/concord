@@ -19,6 +19,7 @@ namespace Concord.Data
             }
         }
 
+        public SqliteConnection Connection => new SqliteConnection(ConnectionString);
 
 
         string ConnectionString => new SqliteConnectionStringBuilder()
@@ -27,7 +28,7 @@ namespace Concord.Data
             Pooling = true,
         }.ConnectionString;
 
-        private static void Migrate(SqliteConnection sql, long x)
+        private void Migrate(SqliteConnection sql, long x)
         {
             switch (x)
             {
@@ -39,7 +40,7 @@ namespace Concord.Data
             }
         }
 
-        private static void MigrateFrom0(SqliteConnection sql)
+        private void MigrateFrom0(SqliteConnection sql)
         {
             sql.Execute($@"
 PRAGMA journal_mode = WAL;
