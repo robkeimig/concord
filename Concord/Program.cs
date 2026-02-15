@@ -9,9 +9,13 @@ using Concord.Services.Acme;
 
 Console.WriteLine("Starting Concord...");
 
+var publicIp = await PublicIpService.GetPublicIpAsync();
+
+Console.WriteLine($"Public IP Address: {publicIp}");
+
 var database = new Database();
 using var sql = database.Connection;
-await sql.BootstrapUsers();
+await sql.BootstrapUsers(publicIp);
 
 // ACME services
 var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
@@ -25,7 +29,6 @@ builder.Services.AddSingleton<IAcmeHttpChallengeStore, AcmeHttpChallengeStore>()
 builder.Services.AddSingleton<IAcmeAccountStore>(_ => new FileAcmeAccountStore(acmeDir));
 builder.Services.AddHttpClient<IAcmeClient, AcmeClient>().ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
 
-// Cert state kept in-memory and refreshed synchronously during certificate selection.
 object certLock = new();
 X509Certificate2? currentCert = null;
 DateTimeOffset? issuedAtUtc = null;
@@ -55,17 +58,14 @@ builder.WebHost.ConfigureKestrel(options =>
                     var sp = serviceProvider ?? throw new InvalidOperationException("ServiceProvider not initialized");
                     using var scope = sp.CreateScope();
                     var acme = scope.ServiceProvider.GetRequiredService<IAcmeClient>();
-                    var ip = PublicIpService.GetPublicIpAsync(CancellationToken.None).GetAwaiter().GetResult();
 
-                    if (issuedForIp is not null && !string.Equals(issuedForIp, ip, StringComparison.Ordinal))
-                        Console.WriteLine("Public IP changed from {OldIp} to {NewIp}; re-issuing certificate", issuedForIp, ip);
+                    Console.WriteLine("Issuing/renewing Let's Encrypt certificate for {Ip}", publicIp);
 
-                    Console.WriteLine("Issuing/renewing Let's Encrypt certificate for {Ip}", ip);
-                    currentCert = acme.EnsureIpCertificateAsync(ip, CancellationToken.None).GetAwaiter().GetResult();
-
+                    currentCert = acme.EnsureIpCertificateAsync(publicIp, CancellationToken.None).GetAwaiter().GetResult();
                     issuedAtUtc = now;
-                    issuedForIp = ip;
-
+                    issuedForIp = publicIp;
+                    
+                    Console.WriteLine("Let's Encrypt certificate for {Ip} [re]issued successfully.", publicIp);
                     return currentCert;
                 }
             };
@@ -75,6 +75,11 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 serviceProvider = app.Services;
+
+app.Lifetime.ApplicationStarted.Register(async () =>
+{
+    Console.WriteLine("Concord started successfully.");
+});
 
 app.UseDefaultFiles();
 app.UseStaticFiles();

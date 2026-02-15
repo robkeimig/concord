@@ -27,7 +27,7 @@ public class UsersTable
 
 public static class UserDataExtensions
 {
-    public static async Task BootstrapUsers(this SqliteConnection sql)
+    public static async Task BootstrapUsers(this SqliteConnection sql, string publicIp)
     {
         var userCount = sql.ExecuteScalar<long>($"SELECT COUNT(1) FROM {UsersTable.TableName};");
         if (userCount > 0)
@@ -39,12 +39,12 @@ public static class UserDataExtensions
             ? existingInvitationCode!
             : sql.CreatePermanentInvitation();
 
-        var publicIp = await PublicIpService.GetPublicIpAsync();
-
         Console.WriteLine();
         Console.WriteLine();
         Console.BackgroundColor = ConsoleColor.Black;
         Console.ForegroundColor = ConsoleColor.Green;
+
+        Console.WriteLine("No users exist in this server yet.");
         Console.WriteLine("Use the following information to create the first administrator account:");
         Console.WriteLine();
         Console.WriteLine($"  Server IP:       {publicIp}");
