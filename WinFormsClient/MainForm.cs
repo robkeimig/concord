@@ -225,5 +225,12 @@ namespace WinFormsClient
                 Initialized = true;
             }
         }
+
+        private void SettingsButton_Click(object sender, EventArgs e)
+        {
+            //TODO: Present the SettingsForm as a modal dialog, passing the WebView2 environment for optimal performance.
+            //I assume we want to handle settings specific concerns in the SettingsForm, so we should implement relevant WebView message handling there as well.
+            //The form should conform to winforms dialog best practices and return appropriate dialogresult.
+        }
     }
 }

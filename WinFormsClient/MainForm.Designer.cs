@@ -28,12 +28,14 @@
         /// </summary>
         private void InitializeComponent()
         {
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(MainForm));
             MainPanel = new Panel();
             MainLayoutPanel = new TableLayoutPanel();
             MainWebView = new Microsoft.Web.WebView2.WinForms.WebView2();
             MainStatusStrip = new StatusStrip();
             ServerDropDownButton = new ToolStripDropDownButton();
             AddNewServerButton = new ToolStripMenuItem();
+            SettingsButton = new ToolStripDropDownButton();
             LoadingPanel = new Panel();
             LoadingLayoutPanel = new TableLayoutPanel();
             LoadingProgressBar = new ProgressBar();
@@ -84,7 +86,7 @@
             // 
             // MainStatusStrip
             // 
-            MainStatusStrip.Items.AddRange(new ToolStripItem[] { ServerDropDownButton });
+            MainStatusStrip.Items.AddRange(new ToolStripItem[] { ServerDropDownButton, SettingsButton });
             MainStatusStrip.Location = new Point(0, 740);
             MainStatusStrip.Name = "MainStatusStrip";
             MainStatusStrip.Size = new Size(1301, 22);
@@ -105,6 +107,17 @@
             AddNewServerButton.Name = "AddNewServerButton";
             AddNewServerButton.Size = new Size(167, 22);
             AddNewServerButton.Text = "Add New Server...";
+            // 
+            // SettingsButton
+            // 
+            SettingsButton.DisplayStyle = ToolStripItemDisplayStyle.Text;
+            SettingsButton.Image = (Image)resources.GetObject("SettingsButton.Image");
+            SettingsButton.ImageTransparentColor = Color.Magenta;
+            SettingsButton.Name = "SettingsButton";
+            SettingsButton.ShowDropDownArrow = false;
+            SettingsButton.Size = new Size(53, 20);
+            SettingsButton.Text = "Settings";
+            SettingsButton.Click += SettingsButton_Click;
             // 
             // LoadingPanel
             // 
@@ -189,5 +202,6 @@
         private TableLayoutPanel LoadingLayoutPanel;
         private ProgressBar LoadingProgressBar;
         private Label LoadingLabel;
+        private ToolStripDropDownButton SettingsButton;
     }
 }
