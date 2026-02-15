@@ -24,12 +24,38 @@
         .step.active {
             display: block;
         }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 1.25rem;
+            line-height: 1;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.06);
+        }
     </style>
 </head>
 
 <body>
     <div class="card card-left">
-        <h1>Add a server</h1>
+        <div class="header-row">
+            <h1>Add a server</h1>
+            <button id="closeBtn" class="icon-btn" type="button" aria-label="Close">✕</button>
+        </div>
         <p id="subtitle">Enter the server IP address and the invitation token you received.</p>
 
         <div id="step1" class="step active" aria-label="Validate invitation">
@@ -71,6 +97,7 @@
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const subtitle = document.getElementById('subtitle');
+        const closeBtn = document.getElementById('closeBtn');
 
         const validateForm = document.getElementById('validateForm');
         const ipAddress = document.getElementById('ipAddress');
@@ -88,6 +115,11 @@
 
         function hostAvailable() {
             return !!(window.chrome && window.chrome.webview);
+        }
+
+        function requestClose() {
+            if (!hostAvailable()) return;
+            window.chrome.webview.postMessage({ type: 'addServer/cancel' });
         }
 
         function show(el) { el.classList.add('active'); }
@@ -126,6 +158,14 @@
             subtitle.textContent = 'Invitation validated. Create your account.';
             memberName.focus();
         }
+
+        closeBtn.addEventListener('click', () => requestClose());
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') {
+                ev.preventDefault();
+                requestClose();
+            }
+        });
 
         validateForm.addEventListener('submit', (ev) => {
             ev.preventDefault();
