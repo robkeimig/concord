@@ -234,9 +234,11 @@ namespace WinFormsClient
 
             var env = MainWebView.CoreWebView2.Environment;
 
-            using var dlg = new Concord.WinForms.SettingsForm(env, Configuration)
+            // Match the on-screen bounds of the embedded web view.
+            var targetBounds = MainWebView.RectangleToScreen(MainWebView.ClientRectangle);
+
+            using var dlg = new Concord.WinForms.SettingsForm(env, Configuration, targetBounds)
             {
-                StartPosition = FormStartPosition.CenterParent,
                 ShowInTaskbar = false,
                 MinimizeBox = false,
                 MaximizeBox = true

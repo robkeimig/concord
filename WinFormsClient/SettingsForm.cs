@@ -9,11 +9,13 @@ namespace Concord.WinForms
         private bool Initialized;
         private readonly CoreWebView2Environment WebView2Environment;
         private readonly Configuration Configuration;
+        private readonly Rectangle? TargetBounds;
 
-        public SettingsForm(CoreWebView2Environment webView2Environment, Configuration configuration)
+        public SettingsForm(CoreWebView2Environment webView2Environment, Configuration configuration, Rectangle? targetBounds = null)
         {
             WebView2Environment = webView2Environment ?? throw new ArgumentNullException(nameof(webView2Environment));
             Configuration = configuration;
+            TargetBounds = targetBounds;
 
             InitializeComponent();
 
@@ -22,12 +24,32 @@ namespace Concord.WinForms
             ControlBox = false;
             Text = string.Empty;
 
-            StartPosition = FormStartPosition.CenterParent;
+            // We'll explicitly place it to match the main WebView bounds when shown.
+            StartPosition = FormStartPosition.Manual;
             ShowInTaskbar = false;
+
+            Shown += (_, _) => ApplyTargetBoundsIfProvided();
 
             LoadingPanel.BringToFront();
             LoadingPanel.Visible = true;
             EnsureWebView();
+        }
+
+        private void ApplyTargetBoundsIfProvided()
+        {
+            if (TargetBounds is null)
+                return;
+
+            // Avoid re-entrant layout churn.
+            SuspendLayout();
+            try
+            {
+                Bounds = TargetBounds.Value;
+            }
+            finally
+            {
+                ResumeLayout(performLayout: true);
+            }
         }
 
         private async void EnsureWebView()
