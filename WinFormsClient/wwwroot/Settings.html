@@ -6,26 +6,184 @@
   <title>Settings</title>
   <link rel="stylesheet" href="/style.css" />
   <style>
-    body { padding: 16px; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
-    .card { max-width: 900px; margin: 0 auto; }
-    .muted { opacity: .8; }
-    code { background: rgba(0,0,0,.06); padding: 2px 4px; border-radius: 4px; }
-    button { padding: 8px 12px; }
+    :root {
+      --bg: #0b0c0f;
+      --panel: #11131a;
+      --panel2: #0f1117;
+      --text: #f5f7ff;
+      --muted: rgba(245,247,255,.72);
+      --border: rgba(245,247,255,.14);
+      --focus: rgba(56,139,253,.55);
+      --green: #2ea043;
+      --red: #cf222e;
+    }
+
+    body {
+        margin: 0;
+        padding: 12px;
+        font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+        background: transparent;
+        background-color: transparent;
+        color: var(--text);
+    }
+
+    .card {
+      max-width: 640px;
+      margin: 0 auto;
+      background: linear-gradient(180deg, var(--panel), var(--panel2));
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px;
+    }
+
+    h1 {
+      font-size: 18px;
+      margin: 0 0 8px 0;
+      letter-spacing: .01em;
+    }
+
+    .muted { color: var(--muted); }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .field {
+      padding: 10px;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      background: rgba(255,255,255,.02);
+    }
+
+    label {
+      display: block;
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: .06em;
+      margin-bottom: 6px;
+      color: var(--muted);
+    }
+
+    input[type="text"] {
+      width: 100%;
+      box-sizing: border-box;
+      padding: 8px 10px;
+      border-radius: 9px;
+      border: 1px solid rgba(255,255,255,.16);
+      background: rgba(0,0,0,.35);
+      color: var(--text);
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: rgba(56,139,253,.65);
+      box-shadow: 0 0 0 3px var(--focus);
+    }
+
+    .ptt {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .pttKey {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+
+    .hint {
+      font-size: 12px;
+      margin-top: 6px;
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      justify-content: space-between;
+      margin-top: 12px;
+    }
+
+    .btn {
+      padding: 8px 12px;
+      border-radius: 10px;
+      border: 2px solid transparent;
+      cursor: pointer;
+      font-weight: 600;
+      letter-spacing: .01em;
+    }
+
+    .btn:disabled { opacity: .65; cursor: not-allowed; }
+
+    /* Save: black on white, green outline, right aligned */
+    .btn-save { border-color: var(--green); background: #fff; color: #000; margin-left: auto; }
+
+    /* Cancel: white on black, red outline, left aligned */
+    .btn-cancel { border-color: var(--red); background: #000; color: #fff; margin-right: auto; }
+
+    /* Bind button: neutral */
+    .btn-bind {
+      background: rgba(255,255,255,.06);
+      border-color: rgba(255,255,255,.16);
+      color: var(--text);
+    }
+
+    .headerRow {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .sub {
+      font-size: 13px;
+      margin: 0;
+      color: var(--muted);
+    }
   </style>
 </head>
 <body>
   <div class="card">
-    <h1>Settings</h1>
-    <p class="muted">Placeholder UI. Next steps: render settings and call back into the host app via <code>chrome.webview.postMessage</code>.</p>
+    <div class="headerRow">
+      <h1>Settings</h1>
+      <p class="sub">Audio/Video + PTT</p>
+    </div>
 
-    <h2>Planned</h2>
-    <ul>
-      <li>Push-to-talk key binding</li>
-      <li>Server management (rename/remove)</li>
-      <li>Theme</li>
-    </ul>
+    <div class="grid">
+      <div class="field">
+        <label for="audioInput">Audio input device</label>
+        <input id="audioInput" type="text" placeholder="Default" />
+      </div>
 
-    <button id="close">Close</button>
+      <div class="field">
+        <label for="audioOutput">Audio output device</label>
+        <input id="audioOutput" type="text" placeholder="Default" />
+      </div>
+
+      <div class="field">
+        <label for="videoInput">Video input device</label>
+        <input id="videoInput" type="text" placeholder="Default" />
+      </div>
+
+      <div class="field">
+        <label>Push-to-talk key</label>
+        <div class="ptt">
+          <input id="pttKey" class="pttKey" type="text" readonly />
+          <button id="bindPtt" class="btn btn-bind" type="button">Bind�</button>
+        </div>
+        <div id="pttHint" class="hint">Click Bind� then press any key. (Esc cancels)</div>
+      </div>
+    </div>
+
+    <div class="actions">
+      <button id="cancel" class="btn btn-cancel" type="button">Cancel</button>
+      <button id="save" class="btn btn-save" type="button">Save</button>
+    </div>
   </div>
 
   <script>
@@ -35,9 +193,109 @@
       }
     };
 
-    document.getElementById('close').addEventListener('click', () => {
-      post({ type: 'settings/close' });
+    const state = {
+      audioInputDevice: '',
+      audioOutputDevice: '',
+      videoInputDevice: '',
+      pushToTalkKey: 'None'
+    };
+
+    const elAudioIn = document.getElementById('audioInput');
+    const elAudioOut = document.getElementById('audioOutput');
+    const elVideoIn = document.getElementById('videoInput');
+    const elPttKey = document.getElementById('pttKey');
+    const elBind = document.getElementById('bindPtt');
+    const elHint = document.getElementById('pttHint');
+
+    let binding = false;
+    let keyHandler = null;
+
+    const render = () => {
+      elAudioIn.value = state.audioInputDevice ?? '';
+      elAudioOut.value = state.audioOutputDevice ?? '';
+      elVideoIn.value = state.videoInputDevice ?? '';
+      elPttKey.value = state.pushToTalkKey ?? 'None';
+    };
+
+    const stopBinding = () => {
+      if (!binding) return;
+      binding = false;
+      elBind.textContent = 'Bind�';
+      elBind.disabled = false;
+      elHint.textContent = 'Click Bind� then press any key. (Esc cancels)';
+      if (keyHandler) {
+        window.removeEventListener('keydown', keyHandler, { capture: true });
+        keyHandler = null;
+      }
+    };
+
+    const startBinding = () => {
+      if (binding) return;
+      binding = true;
+      elBind.textContent = 'Press key�';
+      elBind.disabled = true;
+      elHint.textContent = 'Press any key now� (Esc cancels)';
+
+      keyHandler = (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+
+        if (ev.key === 'Escape') {
+          stopBinding();
+          return;
+        }
+
+        const keyName = (ev.code && ev.code.length) ? ev.code : ev.key;
+        state.pushToTalkKey = keyName;
+        render();
+
+        post({ type: 'settings/pttKeyCaptured', payload: { key: keyName } });
+        stopBinding();
+      };
+
+      window.addEventListener('keydown', keyHandler, { capture: true });
+    };
+
+    elAudioIn.addEventListener('input', () => state.audioInputDevice = elAudioIn.value);
+    elAudioOut.addEventListener('input', () => state.audioOutputDevice = elAudioOut.value);
+    elVideoIn.addEventListener('input', () => state.videoInputDevice = elVideoIn.value);
+
+    elBind.addEventListener('click', () => startBinding());
+
+    document.getElementById('save').addEventListener('click', () => {
+      post({
+        type: 'settings/save',
+        payload: {
+          audioInputDevice: state.audioInputDevice,
+          audioOutputDevice: state.audioOutputDevice,
+          videoInputDevice: state.videoInputDevice,
+          pushToTalkKey: state.pushToTalkKey
+        }
+      });
     });
+
+    document.getElementById('cancel').addEventListener('click', () => {
+      stopBinding();
+      post({ type: 'settings/cancel' });
+    });
+
+    if (window.chrome && window.chrome.webview) {
+      window.chrome.webview.addEventListener('message', (event) => {
+        const msg = event.data;
+        if (!msg || !msg.type) return;
+        if (msg.type === 'settings/data' && msg.payload) {
+          state.audioInputDevice = msg.payload.audioInputDevice ?? '';
+          state.audioOutputDevice = msg.payload.audioOutputDevice ?? '';
+          state.videoInputDevice = msg.payload.videoInputDevice ?? '';
+          state.pushToTalkKey = msg.payload.pushToTalkKey ?? 'None';
+          render();
+        }
+      });
+
+      post({ type: 'settings/load' });
+    }
+
+    render();
   </script>
 </body>
 </html>

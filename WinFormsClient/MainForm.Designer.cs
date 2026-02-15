@@ -131,6 +131,7 @@
             // 
             // LoadingLayoutPanel
             // 
+            LoadingLayoutPanel.BackColor = Color.Transparent;
             LoadingLayoutPanel.ColumnCount = 1;
             LoadingLayoutPanel.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100F));
             LoadingLayoutPanel.Controls.Add(LoadingProgressBar, 0, 1);
