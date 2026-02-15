@@ -47,6 +47,38 @@
         .icon-btn:hover {
             background: rgba(0,0,0,0.06);
         }
+
+        /* Step 1 actions (match Settings: cancel left w/ red border, validate right) */
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: .01em;
+        }
+
+        .btn:disabled { opacity: .65; cursor: not-allowed; }
+
+        .btn-cancel {
+            border-color: #cf222e;
+            background: #000;
+            color: #fff;
+            margin-right: auto;
+        }
+
+        .btn-primary {
+            border-color: transparent;
+            margin-left: auto;
+        }
     </style>
 </head>
 
@@ -54,7 +86,7 @@
     <div class="card card-left">
         <div class="header-row">
             <h1>Add a server</h1>
-            <button id="closeBtn" class="icon-btn" type="button" aria-label="Close">✕</button>
+            <!-- If you later add a header close button, give it id="closeBtn" -->
         </div>
         <p id="subtitle">Enter the server IP address and the invitation token you received.</p>
 
@@ -68,8 +100,9 @@
 
                 <div id="error1" class="error" role="alert"></div>
 
-                <div class="row">
-                    <button id="validateBtn" class="primary" type="submit">Validate</button>
+                <div class="actions">
+                    <button id="cancelBtn" class="btn btn-cancel" type="button">Cancel</button>
+                    <button id="validateBtn" class="btn btn-primary primary" type="submit">Validate</button>
                 </div>
             </form>
         </div>
@@ -97,6 +130,10 @@
         const step1 = document.getElementById('step1');
         const step2 = document.getElementById('step2');
         const subtitle = document.getElementById('subtitle');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        // `closeBtn` doesn't exist in this page. Guard against null so the script
+        // doesn't throw and prevent the Cancel button handler from being registered.
         const closeBtn = document.getElementById('closeBtn');
 
         const validateForm = document.getElementById('validateForm');
@@ -159,7 +196,11 @@
             memberName.focus();
         }
 
-        closeBtn.addEventListener('click', () => requestClose());
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => requestClose());
+        }
+        cancelBtn.addEventListener('click', () => requestClose());
+
         document.addEventListener('keydown', (ev) => {
             if (ev.key === 'Escape') {
                 ev.preventDefault();
