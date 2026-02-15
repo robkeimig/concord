@@ -25,6 +25,7 @@ builder.Services.AddSingleton(database);
 builder.Services.AddSingleton<IAcmeHttpChallengeStore, AcmeHttpChallengeStore>();
 builder.Services.AddSingleton<IAcmeAccountStore>(_ => new FileAcmeAccountStore(acmeDir));
 builder.Services.AddHttpClient<IAcmeClient, AcmeClient>().ConfigureHttpClient(client => client.Timeout = TimeSpan.FromSeconds(30));
+builder.Services.AddRazorPages();
 
 object certLock = new();
 X509Certificate2? currentCert = null;
@@ -93,8 +94,9 @@ app.UseWebSockets(new WebSocketOptions
     KeepAliveInterval = TimeSpan.FromSeconds(30)
 });
 
-app.MapAcmeEndpoints();
 app.UseDefaultFiles();
 app.UseStaticFiles();
+app.MapAcmeEndpoints();
 app.MapConcordEndpoints();
+app.MapRazorPages();
 app.Run();
