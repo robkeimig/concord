@@ -39,8 +39,7 @@ public static class UserDataExtensions
             ? existingInvitationCode!
             : sql.CreatePermanentInvitation();
 
-        var publicIpService = new AmazonPublicIpService(new HttpClient(), new LoggerFactory().CreateLogger<AmazonPublicIpService>());    
-        var publicIp = await publicIpService.GetPublicIpAsync();
+        var publicIp = await PublicIpService.GetPublicIpAsync();
 
         Console.WriteLine();
         Console.WriteLine();

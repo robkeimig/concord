@@ -7,21 +7,19 @@ using Concord.Data;
 using Concord.Services;
 using Concord.Services.Acme;
 
-var builder = WebApplication.CreateBuilder(args);
+Console.WriteLine("Starting Concord...");
 
-builder.Services.AddHttpClient<IPublicIpService, AmazonPublicIpService>(client =>
-{
-    client.Timeout = TimeSpan.FromSeconds(10);
-});
+var database = new Database();
+using var sql = database.Connection;
+await sql.BootstrapUsers();
 
 // ACME services
 var dataDir = Path.Combine(AppContext.BaseDirectory, "data");
 var acmeDir = Path.Combine(dataDir, "acme");
 Directory.CreateDirectory(acmeDir);
-var database = new Database();
-using var sql = database.Connection;
 
-await sql.BootstrapUsers();
+var builder = WebApplication.CreateBuilder(args);
+builder.Logging.ClearProviders();
 builder.Services.AddSingleton(database);
 builder.Services.AddSingleton<IAcmeHttpChallengeStore, AcmeHttpChallengeStore>();
 builder.Services.AddSingleton<IAcmeAccountStore>(_ => new FileAcmeAccountStore(acmeDir));
@@ -56,16 +54,13 @@ builder.WebHost.ConfigureKestrel(options =>
 
                     var sp = serviceProvider ?? throw new InvalidOperationException("ServiceProvider not initialized");
                     using var scope = sp.CreateScope();
-                    var ipService = scope.ServiceProvider.GetRequiredService<IPublicIpService>();
                     var acme = scope.ServiceProvider.GetRequiredService<IAcmeClient>();
-                    var logger = scope.ServiceProvider.GetRequiredService<ILoggerFactory>().CreateLogger("KestrelCertSelector");
-
-                    var ip = ipService.GetPublicIpAsync(CancellationToken.None).GetAwaiter().GetResult();
+                    var ip = PublicIpService.GetPublicIpAsync(CancellationToken.None).GetAwaiter().GetResult();
 
                     if (issuedForIp is not null && !string.Equals(issuedForIp, ip, StringComparison.Ordinal))
-                        logger.LogInformation("Public IP changed from {OldIp} to {NewIp}; re-issuing certificate", issuedForIp, ip);
+                        Console.WriteLine("Public IP changed from {OldIp} to {NewIp}; re-issuing certificate", issuedForIp, ip);
 
-                    logger.LogInformation("Issuing/renewing Let's Encrypt certificate for {Ip}", ip);
+                    Console.WriteLine("Issuing/renewing Let's Encrypt certificate for {Ip}", ip);
                     currentCert = acme.EnsureIpCertificateAsync(ip, CancellationToken.None).GetAwaiter().GetResult();
 
                     issuedAtUtc = now;
@@ -80,8 +75,6 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 serviceProvider = app.Services;
-
-app.Logger.LogInformation("Concord starting");
 
 app.UseDefaultFiles();
 app.UseStaticFiles();
@@ -103,9 +96,9 @@ app.MapGet("/.well-known/acme-challenge/{token}", (string token, IAcmeHttpChalle
 });
 
 // Public IP endpoint
-app.MapGet("/ip", async (IPublicIpService ipService, CancellationToken ct) =>
+app.MapGet("/ip", async () =>
 {
-    var ip = await ipService.GetPublicIpAsync(ct);
+    var ip = await PublicIpService.GetPublicIpAsync();
     return Results.Text(ip + "\n", "text/plain", Encoding.UTF8);
 });
 
