@@ -19,6 +19,32 @@ namespace WinFormsClient
             //ApplyDarkTheme(this);
         }
 
+        private sealed class StatusStripScope : IDisposable
+        {
+            private readonly StatusStrip _strip;
+            private readonly bool _wasEnabled;
+
+            public StatusStripScope(StatusStrip strip)
+            {
+                _strip = strip;
+                _wasEnabled = strip.Enabled;
+
+                // Disable so it can't be interacted with.
+                _strip.Enabled = false;
+            }
+
+            public void Dispose()
+            {
+                _strip.Enabled = _wasEnabled;
+            }
+        }
+
+        private StatusStripScope SuppressMainStatusStrip()
+        {
+            // `MainStatusStrip` is the designer-created instance.
+            return new StatusStripScope(MainStatusStrip);
+        }
+
         private void ShowAddServerDialog()
         {
             if (MainWebView?.CoreWebView2 is null)
@@ -34,12 +60,15 @@ namespace WinFormsClient
                 MaximizeBox = true
             };
 
-            var result = dlg.ShowDialog(this);
-            if (result == DialogResult.OK)
+            using (SuppressMainStatusStrip())
             {
-                // Reload configuration + navigate to the newly-selected server.
-                Configuration = Configuration.Load();
-                NavigateToCurrentServer();
+                var result = dlg.ShowDialog(this);
+                if (result == DialogResult.OK)
+                {
+                    // Reload configuration + navigate to the newly-selected server.
+                    Configuration = Configuration.Load();
+                    NavigateToCurrentServer();
+                }
             }
         }
 
@@ -108,7 +137,10 @@ namespace WinFormsClient
                 MaximizeBox = true
             };
 
-            dlg.ShowDialog(this);
+            using (SuppressMainStatusStrip())
+            {
+                dlg.ShowDialog(this);
+            }
         }
     }
 }
