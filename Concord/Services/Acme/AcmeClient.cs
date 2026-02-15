@@ -112,8 +112,7 @@ internal sealed class AcmeClient(
                 if (st.Status == "valid") break;
                 if (st.Status == "invalid")
                 {
-                    logger.LogError("ACME authorization invalid for {AuthzUrl}: {Body}", authzUrl, stJson);
-                    throw new InvalidOperationException("ACME authorization failed");
+                    throw new InvalidOperationException($"ACME authorization failed:{Environment.NewLine}{authzUrl}{Environment.NewLine}{stJson}");
                 }
                 if (i == 59) throw new TimeoutException("ACME authorization polling timed out");
             }
