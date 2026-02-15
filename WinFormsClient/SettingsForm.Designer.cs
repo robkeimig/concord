@@ -108,7 +108,7 @@
             Controls.Add(SettingsWebView);
             Controls.Add(LoadingPanel);
             Name = "SettingsForm";
-            Text = "SettingsForm";
+            Text = "Settings";
             LoadingPanel.ResumeLayout(false);
             LoadingLayoutPanel.ResumeLayout(false);
             LoadingLayoutPanel.PerformLayout();

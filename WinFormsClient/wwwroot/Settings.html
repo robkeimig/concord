@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Settings</title>
+  <link rel="stylesheet" href="/style.css" />
+  <style>
+    body { padding: 16px; font-family: system-ui, -apple-system, Segoe UI, sans-serif; }
+    .card { max-width: 900px; margin: 0 auto; }
+    .muted { opacity: .8; }
+    code { background: rgba(0,0,0,.06); padding: 2px 4px; border-radius: 4px; }
+    button { padding: 8px 12px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Settings</h1>
+    <p class="muted">Placeholder UI. Next steps: render settings and call back into the host app via <code>chrome.webview.postMessage</code>.</p>
+
+    <h2>Planned</h2>
+    <ul>
+      <li>Push-to-talk key binding</li>
+      <li>Server management (rename/remove)</li>
+      <li>Theme</li>
+    </ul>
+
+    <button id="close">Close</button>
+  </div>
+
+  <script>
+    const post = (msg) => {
+      if (window.chrome && window.chrome.webview) {
+        window.chrome.webview.postMessage(msg);
+      }
+    };
+
+    document.getElementById('close').addEventListener('click', () => {
+      post({ type: 'settings/close' });
+    });
+  </script>
+</body>
+</html>

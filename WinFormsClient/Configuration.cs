@@ -16,6 +16,9 @@ public class Configuration
     public Guid? LastServerId { get; set; }
     public Keys PushToTalkKey { get; set; } = Keys.None;
     public List<Server> Servers { get; set; } = [];
+    public string AudioInputDevice { get; set; }
+    public string AudioOutputDevice { get; set; }
+    public string VideoInputDevice { get; set; }
 
     public static string ConfigurationFilePath()
     {
