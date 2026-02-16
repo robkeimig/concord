@@ -10,12 +10,17 @@ public partial class MainForm : Form
     SettingsForm SettingsForm;
     AddServerForm AddServerForm;
 
+    private ToolStripSeparator? ServerListSeparator;
+
     public MainForm()
     {
         InitializeComponent();
         LoadingPanel.BringToFront();
         Configuration = Configuration.Load();
         AddNewServerButton.Click += (_, _) => ShowAddServerDialog();
+
+        RefreshServerListMenu();
+
         EnsureWebView();
     }
 
@@ -42,6 +47,7 @@ public partial class MainForm : Form
         if (Configuration.Servers.Count == 0)
         {
             MainWebView.Source = new Uri("https://app/NoServers.html");
+            RefreshServerListMenu();
             return;
         }
 
@@ -50,13 +56,17 @@ public partial class MainForm : Form
             : Configuration.Servers.First();
 
         _ = NavigateToServerAsync(server);
+        RefreshServerListMenu();
     }
 
     private async Task NavigateToServerAsync(Server server)
     {
+        Configuration.LastServerId = server.Id;
+        Configuration.SaveChanges();
+
         var destination = ServerUri.GetUri(server.IpAddress, "client");
         var cm = MainWebView.CoreWebView2.CookieManager;
-        
+
         if (!string.IsNullOrWhiteSpace(server.AccessToken))
         {
             var cookie = cm.CreateCookie("AccessToken", server.AccessToken, destination.Host, "/");
@@ -66,6 +76,48 @@ public partial class MainForm : Form
         }
 
         MainWebView.Source = destination;
+        RefreshServerListMenu();
+    }
+
+    private void RefreshServerListMenu()
+    {
+        // Ensure the dropdown always contains:
+        // 1) AddNewServerButton
+        // 2) optional separator
+        // 3) one item per configured server (ip address)
+
+        ServerDropDownButton.DropDownItems.Clear();
+        ServerDropDownButton.DropDownItems.Add(AddNewServerButton);
+
+        if (Configuration.Servers.Count > 0)
+        {
+            ServerListSeparator = new ToolStripSeparator();
+            ServerDropDownButton.DropDownItems.Add(ServerListSeparator);
+
+            foreach (var server in Configuration.Servers)
+            {
+                var ip = string.IsNullOrWhiteSpace(server.IpAddress) ? "(unknown)" : server.IpAddress;
+                var item = new ToolStripMenuItem(ip)
+                {
+                    Tag = server,
+                    Checked = Configuration.LastServerId.HasValue && server.Id == Configuration.LastServerId.Value,
+                    CheckOnClick = false,
+                };
+
+                item.Click += async (_, _) =>
+                {
+                    // If the dropdown stays open, close it before navigation.
+                    ServerDropDownButton.HideDropDown();
+                    await NavigateToServerAsync(server);
+                };
+
+                ServerDropDownButton.DropDownItems.Add(item);
+            }
+        }
+        else
+        {
+            ServerListSeparator = null;
+        }
     }
 
     private async void EnsureWebView()
@@ -113,8 +165,8 @@ public partial class MainForm : Form
 
             if (result == DialogResult.OK)
             {
-
                 Configuration = Configuration.Load();
+                RefreshServerListMenu();
                 NavigateToCurrentServer();
             }
         }
