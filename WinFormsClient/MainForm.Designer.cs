@@ -36,6 +36,7 @@
             ServerDropDownButton = new ToolStripDropDownButton();
             AddNewServerButton = new ToolStripMenuItem();
             SettingsButton = new ToolStripDropDownButton();
+            MainOverlayPanel = new Panel();
             LoadingPanel = new Panel();
             LoadingLayoutPanel = new TableLayoutPanel();
             LoadingProgressBar = new ProgressBar();
@@ -105,7 +106,7 @@
             // AddNewServerButton
             // 
             AddNewServerButton.Name = "AddNewServerButton";
-            AddNewServerButton.Size = new Size(167, 22);
+            AddNewServerButton.Size = new Size(180, 22);
             AddNewServerButton.Text = "Add New Server...";
             // 
             // SettingsButton
@@ -118,6 +119,16 @@
             SettingsButton.Size = new Size(53, 20);
             SettingsButton.Text = "Settings";
             SettingsButton.Click += ShowSettingsDialog;
+            // 
+            // MainOverlayPanel
+            // 
+            MainOverlayPanel.BackColor = Color.Black;
+            MainOverlayPanel.Dock = DockStyle.Fill;
+            MainOverlayPanel.Location = new Point(0, 0);
+            MainOverlayPanel.Name = "MainOverlayPanel";
+            MainOverlayPanel.Size = new Size(1301, 762);
+            MainOverlayPanel.TabIndex = 2;
+            MainOverlayPanel.Visible = false;
             // 
             // LoadingPanel
             // 
@@ -175,6 +186,7 @@
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1301, 762);
+            Controls.Add(MainOverlayPanel);
             Controls.Add(MainPanel);
             Controls.Add(LoadingPanel);
             Name = "MainForm";
@@ -204,5 +216,6 @@
         private ProgressBar LoadingProgressBar;
         private Label LoadingLabel;
         private ToolStripDropDownButton SettingsButton;
+        private Panel MainOverlayPanel;
     }
 }

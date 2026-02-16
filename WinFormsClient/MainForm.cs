@@ -41,7 +41,72 @@ public partial class MainForm : Form
             _strip.Enabled = _wasEnabled;
         }
     }
-    
+
+    private sealed class ModalOverlayScope : IDisposable
+    {
+        private readonly Form _owner;
+        private readonly Panel _overlayPanel;
+        private readonly Control _loading;
+
+        private Form? _overlayForm;
+        private readonly bool _overlayPanelWasVisible;
+
+        public ModalOverlayScope(Form owner, Panel overlayPanel, Control loading)
+        {
+            _owner = owner;
+            _overlayPanel = overlayPanel;
+            _loading = loading;
+
+            _overlayPanelWasVisible = overlayPanel.Visible;
+
+            _overlayForm = new Form
+            {
+                FormBorderStyle = FormBorderStyle.None,
+                ShowInTaskbar = false,
+                StartPosition = FormStartPosition.Manual,
+                BackColor = Color.Black,
+                Opacity = 0.75,
+                //TopMost = true,
+                Owner = owner,
+            };
+
+            _overlayForm.Bounds = owner.Bounds;
+
+            owner.LocationChanged += OwnerBoundsChanged;
+            owner.SizeChanged += OwnerBoundsChanged;
+
+            _overlayForm.Show(owner);
+            _overlayForm.BringToFront();
+
+            _loading.BringToFront();
+
+            _overlayPanel.Visible = false;
+        }
+
+        private void OwnerBoundsChanged(object? sender, EventArgs e)
+        {
+            if (_overlayForm is null || _overlayForm.IsDisposed)
+                return;
+
+            _overlayForm.Bounds = _owner.Bounds;
+        }
+
+        public void Dispose()
+        {
+            _owner.LocationChanged -= OwnerBoundsChanged;
+            _owner.SizeChanged -= OwnerBoundsChanged;
+
+            if (_overlayForm is not null)
+            {
+                try { _overlayForm.Close(); } catch { }
+                _overlayForm.Dispose();
+                _overlayForm = null;
+            }
+
+            _overlayPanel.Visible = _overlayPanelWasVisible;
+        }
+    }
+
     private void NavigateToCurrentServer()
     {
         if (Configuration.Servers.Count == 0)
@@ -159,6 +224,7 @@ public partial class MainForm : Form
         NotifyAddServerClicked();
 
         using (new StatusStripScope(MainStatusStrip))
+        using (new ModalOverlayScope(this, MainOverlayPanel, LoadingPanel))
         {
             AddServerForm.StartPosition = FormStartPosition.CenterParent;
             var result = AddServerForm.ShowDialog(this);
@@ -186,6 +252,7 @@ public partial class MainForm : Form
     private void ShowSettingsDialog(object sender, EventArgs e)
     {
         using (new StatusStripScope(MainStatusStrip))
+        using (new ModalOverlayScope(this, MainOverlayPanel, LoadingPanel))
         {
             SettingsForm.StartPosition = FormStartPosition.CenterParent;
             SettingsForm.ShowDialog(this);
