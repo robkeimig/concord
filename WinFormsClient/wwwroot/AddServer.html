@@ -166,6 +166,13 @@
         const success2 = document.getElementById('success2');
 
         let requiresInvitation = null;
+        let pendingServerInfoRequest = false;
+
+        function setStep1Busy(isBusy) {
+            pendingServerInfoRequest = !!isBusy;
+            nextBtn.disabled = pendingServerInfoRequest;
+            ipAddress.disabled = pendingServerInfoRequest;
+        }
 
         function hostAvailable() {
             return !!(window.chrome && window.chrome.webview);
@@ -256,9 +263,8 @@
                 return;
             }
 
-            nextBtn.disabled = true;
+            setStep1Busy(true);
             window.chrome.webview.postMessage({ type: 'addServer/ip', payload: { ipAddress: ip } });
-            setTimeout(() => { nextBtn.disabled = false; }, 1000);
         });
 
         backBtn.addEventListener('click', () => {
@@ -327,6 +333,9 @@
                 const payload = msg.payload || {};
 
                 if (type === 'addserver/serverinfo') {
+                    // Host responded (success or failure) -> unlock step 1 UI.
+                    setStep1Busy(false);
+
                     if (payload && payload.ok === false) {
                         // Bad IP / server unreachable -> show error on step 1
                         goToStep1();
@@ -341,7 +350,7 @@
                     } else {
                         goToProfileStep();
                     }
-                }
+                 }
 
                 if (type === 'addserver/membercreated') {
                     if (payload.ok) {
@@ -351,7 +360,10 @@
                     }
                 }
             });
-        }
+         }
+
+        // Initial state
+        nextBtn.disabled = false;
     </script>
 </body>
 </html>
