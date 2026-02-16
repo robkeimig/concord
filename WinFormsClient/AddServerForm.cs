@@ -246,22 +246,13 @@ namespace Concord.WinForms
             try
             {
                 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
-                // Prefer HTTPS but allow dev/self-hosted HTTP.
-                var https = $"https://{ipAddress}/ServerInfo";
-                var httpUrl = $"http://{ipAddress}/ServerInfo";
-
-                try
-                {
-                    var si = await http.GetFromJsonAsync<ServerInfo>(https);
-                    if (si is not null)
-                        return si;
-                }
-                catch
-                {
-                    // fall back to http
-                }
-
-                return await http.GetFromJsonAsync<ServerInfo>(httpUrl);
+                var uri = ServerUri.GetUri(ipAddress, "ServerInfo");
+                var https = new Uri($"https://{ipAddress}/ServerInfo");
+                var httpUrl = new Uri($"http://{ipAddress}/ServerInfo");
+                var serverInfo = await http.GetFromJsonAsync<ServerInfo>(uri);
+                if (serverInfo is not null)
+                    return serverInfo;
+                return null;
             }
             catch
             {
