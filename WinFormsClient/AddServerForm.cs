@@ -9,18 +9,14 @@ namespace Concord.WinForms
         private bool Initialized;
         private readonly CoreWebView2Environment WebView2Environment;
         private readonly Configuration Configuration;
-        private readonly Rectangle? TargetBounds;
-
-        // Pending add flow state (kept in memory until the user finishes the web-based wizard)
         private AddServerRequest? PendingAddServerRequest;
 
         private record AddServerRequest(string IpAddress, string InvitationToken);
 
-        public AddServerForm(CoreWebView2Environment webView2Environment, Configuration configuration, Rectangle? targetBounds = null)
+        public AddServerForm(CoreWebView2Environment webView2Environment, Configuration configuration)
         {
             WebView2Environment = webView2Environment ?? throw new ArgumentNullException(nameof(webView2Environment));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
-            TargetBounds = targetBounds;
 
             InitializeComponent();
 
@@ -33,8 +29,6 @@ namespace Concord.WinForms
             StartPosition = FormStartPosition.Manual;
             ShowInTaskbar = false;
 
-            Shown += (_, _) => ApplyTargetBoundsIfProvided();
-
             LoadingPanel.BringToFront();
             LoadingPanel.Visible = true;
 
@@ -46,22 +40,6 @@ namespace Concord.WinForms
             PendingAddServerRequest = null;
             DialogResult = DialogResult.Cancel;
             Close();
-        }
-
-        private void ApplyTargetBoundsIfProvided()
-        {
-            if (TargetBounds is null)
-                return;
-
-            SuspendLayout();
-            try
-            {
-                Bounds = TargetBounds.Value;
-            }
-            finally
-            {
-                ResumeLayout(performLayout: true);
-            }
         }
 
         private async void EnsureWebView()

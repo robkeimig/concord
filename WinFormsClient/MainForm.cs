@@ -1,3 +1,4 @@
+using Concord.WinForms;
 using Microsoft.Web.WebView2.Core;
 
 namespace WinFormsClient
@@ -6,6 +7,8 @@ namespace WinFormsClient
     {
         bool Initialized;
         Configuration Configuration;
+        SettingsForm SettingsForm;
+        AddServerForm AddServerForm;
 
         public MainForm()
         {
@@ -45,32 +48,7 @@ namespace WinFormsClient
             return new StatusStripScope(MainStatusStrip);
         }
 
-        private void ShowAddServerDialog()
-        {
-            if (MainWebView?.CoreWebView2 is null)
-                return;
 
-            var env = MainWebView.CoreWebView2.Environment;
-            var targetBounds = MainWebView.RectangleToScreen(MainWebView.ClientRectangle);
-
-            using var dlg = new Concord.WinForms.AddServerForm(env, Configuration, targetBounds)
-            {
-                ShowInTaskbar = false,
-                MinimizeBox = false,
-                MaximizeBox = true
-            };
-
-            using (SuppressMainStatusStrip())
-            {
-                var result = dlg.ShowDialog(this);
-                if (result == DialogResult.OK)
-                {
-                    // Reload configuration + navigate to the newly-selected server.
-                    Configuration = Configuration.Load();
-                    NavigateToCurrentServer();
-                }
-            }
-        }
 
         private void NavigateToCurrentServer()
         {
@@ -94,7 +72,10 @@ namespace WinFormsClient
                    Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                    "ConcordWebView"
                )
-           );
+            );
+
+            SettingsForm = new SettingsForm(environment, Configuration);
+            AddServerForm = new AddServerForm(environment, Configuration);
 
             await MainWebView.EnsureCoreWebView2Async(environment);
             MainWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
@@ -119,27 +100,28 @@ namespace WinFormsClient
             }
         }
 
-        private void SettingsButton_Click(object sender, EventArgs e)
+        private void ShowAddServerDialog()
         {
-            // Present the SettingsForm as a modal dialog, passing the WebView2 environment for optimal performance.
-            if (MainWebView?.CoreWebView2 is null)
-                return;
-
-            var env = MainWebView.CoreWebView2.Environment;
-
-            // Match the on-screen bounds of the embedded web view.
-            var targetBounds = MainWebView.RectangleToScreen(MainWebView.ClientRectangle);
-
-            using var dlg = new Concord.WinForms.SettingsForm(env, Configuration, targetBounds)
-            {
-                ShowInTaskbar = false,
-                MinimizeBox = false,
-                MaximizeBox = true
-            };
-
             using (SuppressMainStatusStrip())
             {
-                dlg.ShowDialog(this);
+                AddServerForm.StartPosition = FormStartPosition.CenterParent;
+                var result = AddServerForm.ShowDialog(this);
+
+                if (result == DialogResult.OK)
+                {
+                    
+                    Configuration = Configuration.Load();
+                    NavigateToCurrentServer();
+                }
+            }
+        }
+
+        private void ShowSettingsDialog(object sender, EventArgs e)
+        {
+            using (SuppressMainStatusStrip())
+            {
+                SettingsForm.StartPosition = FormStartPosition.CenterParent;
+                SettingsForm.ShowDialog(this);
             }
         }
     }

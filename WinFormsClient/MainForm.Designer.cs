@@ -117,7 +117,7 @@
             SettingsButton.ShowDropDownArrow = false;
             SettingsButton.Size = new Size(53, 20);
             SettingsButton.Text = "Settings";
-            SettingsButton.Click += SettingsButton_Click;
+            SettingsButton.Click += ShowSettingsDialog;
             // 
             // LoadingPanel
             // 
