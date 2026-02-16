@@ -28,16 +28,16 @@ public class Configuration
             "configuration.json");
     }
 
-    public static Configuration Load(string? path = null)
+    public static Configuration Load()
     {
-        if (!File.Exists(path))
+        if (!File.Exists(ConfigurationFilePath()))
         {
             var created = new Configuration();
             created.SaveChanges();
             return created;
         }
 
-        var json = File.ReadAllText(path);
+        var json = File.ReadAllText(ConfigurationFilePath());
         var config = JsonSerializer.Deserialize<Configuration>(json, SerializerOptions) ?? new Configuration();
         config.Servers ??= [];
         return config;
