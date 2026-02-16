@@ -49,7 +49,23 @@ public partial class MainForm : Form
             ? Configuration.Servers.First(x => x.Id == Configuration.LastServerId.Value)
             : Configuration.Servers.First();
 
-        MainWebView.Source = ServerUri.GetUri(server.IpAddress, "client");
+        _ = NavigateToServerAsync(server);
+    }
+
+    private async Task NavigateToServerAsync(Server server)
+    {
+        var destination = ServerUri.GetUri(server.IpAddress, "client");
+        var cm = MainWebView.CoreWebView2.CookieManager;
+        
+        if (!string.IsNullOrWhiteSpace(server.AccessToken))
+        {
+            var cookie = cm.CreateCookie("AccessToken", server.AccessToken, destination.Host, "/");
+            cookie.IsHttpOnly = true;
+            cookie.IsSecure = string.Equals(destination.Scheme, "https", StringComparison.OrdinalIgnoreCase);
+            cm.AddOrUpdateCookie(cookie);
+        }
+
+        MainWebView.Source = destination;
     }
 
     private async void EnsureWebView()
