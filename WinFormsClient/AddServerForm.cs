@@ -1,4 +1,5 @@
 ﻿using Microsoft.Web.WebView2.Core;
+using System.Net.Http.Json;
 using System.Text.Json;
 using WinFormsClient;
 
@@ -9,9 +10,11 @@ namespace Concord.WinForms
         private bool Initialized;
         private readonly CoreWebView2Environment WebView2Environment;
         private readonly Configuration Configuration;
-        private AddServerRequest? PendingAddServerRequest;
 
-        private record AddServerRequest(string IpAddress, string InvitationToken);
+        private string? PendingIpAddress;
+        private bool? PendingRequiresInvitation;
+
+        private record ServerInfo(bool RequiresInvitation);
 
         public AddServerForm(CoreWebView2Environment webView2Environment, Configuration configuration)
         {
@@ -37,7 +40,8 @@ namespace Concord.WinForms
 
         private void CancelAndClose()
         {
-            PendingAddServerRequest = null;
+            PendingIpAddress = null;
+            PendingRequiresInvitation = null;
             DialogResult = DialogResult.Cancel;
             Close();
         }
@@ -55,7 +59,8 @@ namespace Concord.WinForms
                 accessKind: CoreWebView2HostResourceAccessKind.Allow
             );
 
-            PendingAddServerRequest = null;
+            PendingIpAddress = null;
+            PendingRequiresInvitation = null;
             AddServerWebView.Source = new Uri("https://app/AddServer.html");
         }
 
@@ -64,10 +69,7 @@ namespace Concord.WinForms
             if (AddServerWebView?.CoreWebView2 is null)
                 return;
 
-            var json = JsonSerializer.Serialize(
-                message,
-                new JsonSerializerOptions(JsonSerializerDefaults.Web));
-
+            var json = JsonSerializer.Serialize(message, new JsonSerializerOptions(JsonSerializerDefaults.Web));
             AddServerWebView.CoreWebView2.PostWebMessageAsJson(json);
         }
 
@@ -93,48 +95,58 @@ namespace Concord.WinForms
                 if (string.IsNullOrWhiteSpace(type))
                     return;
 
-                if (string.Equals(type, "addServer", StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(type, "addServer/ip", StringComparison.OrdinalIgnoreCase))
                 {
                     var payload = root.TryGetProperty("payload", out var p) ? p : default;
                     var ipAddress = GetPropertyOrDefault(payload, "ipAddress", p2 => p2.GetString() ?? string.Empty)?.Trim();
-                    var invitationToken = GetPropertyOrDefault(payload, "invitationToken", p2 => p2.GetString() ?? string.Empty)?.Trim();
 
-                    if (string.IsNullOrWhiteSpace(ipAddress) || string.IsNullOrWhiteSpace(invitationToken))
+                    if (string.IsNullOrWhiteSpace(ipAddress))
                         return;
 
-                    var request = new AddServerRequest(ipAddress, invitationToken);
+                    PendingIpAddress = ipAddress;
 
-                    var isValid = await ValidateInvitationAsync(request.IpAddress, request.InvitationToken);
-                    if (!isValid)
+                    var serverInfo = await GetServerInfoAsync(ipAddress);
+                    if (serverInfo is null)
                     {
                         PostJsonToWebView(new
                         {
-                            type = "addServer/validated",
-                            payload = new { ok = false, message = "Invitation is not valid." }
+                            type = "addServer/serverInfo",
+                            payload = new { ok = false, message = "Unable to reach server." }
                         });
                         return;
                     }
 
-                    PendingAddServerRequest = request;
-                    PostJsonToWebView(new { type = "addServer/validated", payload = new { ok = true } });
+                    PendingRequiresInvitation = serverInfo.RequiresInvitation;
+
+                    PostJsonToWebView(new
+                    {
+                        type = "addServer/serverInfo",
+                        payload = new { ok = true, requiresInvitation = serverInfo.RequiresInvitation }
+                    });
+
                     return;
                 }
 
-                // Current AddServer.html sends this message on step 2.
                 if (string.Equals(type, "addServer/createMember", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (PendingAddServerRequest is null)
+                    var payload = root.TryGetProperty("payload", out var p) ? p : default;
+
+                    var ipAddress = GetPropertyOrDefault(payload, "ipAddress", p2 => p2.GetString() ?? string.Empty)?.Trim();
+                    var invitationToken = GetPropertyOrDefault(payload, "invitationToken", p2 => p2.GetString() ?? string.Empty)?.Trim();
+                    var name = GetPropertyOrDefault(payload, "name", p2 => p2.GetString() ?? string.Empty)?.Trim();
+
+                    if (string.IsNullOrWhiteSpace(ipAddress))
+                        ipAddress = PendingIpAddress;
+
+                    if (string.IsNullOrWhiteSpace(ipAddress))
                     {
                         PostJsonToWebView(new
                         {
                             type = "addServer/memberCreated",
-                            payload = new { ok = false, message = "No pending invitation to accept." }
+                            payload = new { ok = false, message = "No server IP address provided." }
                         });
                         return;
                     }
-
-                    var payload = root.TryGetProperty("payload", out var p) ? p : default;
-                    var name = GetPropertyOrDefault(payload, "name", p2 => p2.GetString() ?? string.Empty)?.Trim();
 
                     if (string.IsNullOrWhiteSpace(name))
                     {
@@ -146,15 +158,46 @@ namespace Concord.WinForms
                         return;
                     }
 
-                    var request = PendingAddServerRequest;
+                    // If we haven't discovered server info yet, do it now.
+                    var requiresInvitation = PendingRequiresInvitation;
+                    if (requiresInvitation is null)
+                    {
+                        var si = await GetServerInfoAsync(ipAddress);
+                        requiresInvitation = si?.RequiresInvitation;
+                        PendingRequiresInvitation = requiresInvitation;
+                    }
 
-                    var accepted = await AcceptInvitationAsync(request.IpAddress, request.InvitationToken, name);
+                    if (requiresInvitation == true)
+                    {
+                        if (string.IsNullOrWhiteSpace(invitationToken))
+                        {
+                            PostJsonToWebView(new
+                            {
+                                type = "addServer/memberCreated",
+                                payload = new { ok = false, message = "Invitation token is required." }
+                            });
+                            return;
+                        }
+
+                        var isValid = await ValidateInvitationAsync(ipAddress, invitationToken, name);
+                        if (!isValid)
+                        {
+                            PostJsonToWebView(new
+                            {
+                                type = "addServer/memberCreated",
+                                payload = new { ok = false, message = "Invitation is not valid." }
+                            });
+                            return;
+                        }
+                    }
+
+                    var accepted = await CreateOrJoinAsync(ipAddress, invitationToken ?? string.Empty, name);
                     if (!accepted)
                     {
                         PostJsonToWebView(new
                         {
                             type = "addServer/memberCreated",
-                            payload = new { ok = false, message = "Failed to accept invitation." }
+                            payload = new { ok = false, message = "Failed to create account." }
                         });
                         return;
                     }
@@ -162,14 +205,15 @@ namespace Concord.WinForms
                     var server = new Server
                     {
                         Name = name,
-                        IpAddress = request.IpAddress,
+                        IpAddress = ipAddress,
                     };
 
                     Configuration.Servers.Add(server);
                     Configuration.LastServerId = server.Id;
                     Configuration.SaveChanges();
 
-                    PendingAddServerRequest = null;
+                    PendingIpAddress = null;
+                    PendingRequiresInvitation = null;
 
                     PostJsonToWebView(new { type = "addServer/memberCreated", payload = new { ok = true } });
 
@@ -197,11 +241,39 @@ namespace Concord.WinForms
             }
         }
 
-        // Stubs: later these should call https://<ip>/ValidateInvitation and https://<ip>/AcceptInvitation
-        private static Task<bool> ValidateInvitationAsync(string ipAddress, string invitationToken)
+        private static async Task<ServerInfo?> GetServerInfoAsync(string ipAddress)
+        {
+            try
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
+                // Prefer HTTPS but allow dev/self-hosted HTTP.
+                var https = $"https://{ipAddress}/ServerInfo";
+                var httpUrl = $"http://{ipAddress}/ServerInfo";
+
+                try
+                {
+                    var si = await http.GetFromJsonAsync<ServerInfo>(https);
+                    if (si is not null)
+                        return si;
+                }
+                catch
+                {
+                    // fall back to http
+                }
+
+                return await http.GetFromJsonAsync<ServerInfo>(httpUrl);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        // Stubs: host should call server endpoints. For now keep in client.
+        private static Task<bool> ValidateInvitationAsync(string ipAddress, string invitationToken, string name)
             => Task.FromResult(true);
 
-        private static Task<bool> AcceptInvitationAsync(string ipAddress, string invitationToken, string name)
+        private static Task<bool> CreateOrJoinAsync(string ipAddress, string invitationToken, string name)
             => Task.FromResult(true);
 
         private void HandleWebViewNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)

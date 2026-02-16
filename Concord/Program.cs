@@ -84,6 +84,18 @@ builder.WebHost.ConfigureKestrel(options =>
 var app = builder.Build();
 serviceProvider = app.Services;
 
+// Server capability discovery for clients
+app.MapGet("/ServerInfo", (Database db) =>
+{
+    using var sql = db.Connection;
+    var hasInvite = !string.IsNullOrWhiteSpace(sql.GetLatestInvitationCode());
+
+    return Results.Json(new
+    {
+        requiresInvitation = hasInvite,
+    });
+});
+
 app.Lifetime.ApplicationStarted.Register(async () =>
 {
     Console.WriteLine("Concord started successfully.");
