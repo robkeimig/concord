@@ -2,10 +2,6 @@ namespace WinFormsClient;
 
 internal static class ServerUri
 {
-    /// <summary>
-    /// Returns the scheme to use when talking to a server by IP.
-    /// Requirement: if IP is exactly "127.0.0.1" always use HTTP.
-    /// </summary>
     public static string GetScheme(string ipAddress)
         => string.Equals(ipAddress, "127.0.0.1", StringComparison.Ordinal) ? "http" : "https";
 

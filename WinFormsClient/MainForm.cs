@@ -88,6 +88,8 @@ public partial class MainForm : Form
 
     private void ShowAddServerDialog()
     {
+        NotifyAddServerClicked();
+
         using (new StatusStripScope(MainStatusStrip))
         {
             AddServerForm.StartPosition = FormStartPosition.CenterParent;
@@ -95,10 +97,21 @@ public partial class MainForm : Form
 
             if (result == DialogResult.OK)
             {
-                
+
                 Configuration = Configuration.Load();
                 NavigateToCurrentServer();
             }
+        }
+    }
+
+    private void NotifyAddServerClicked()
+    {
+        try
+        {
+            MainWebView?.CoreWebView2?.PostWebMessageAsJson("{\"type\":\"addServerClicked\"}");
+        }
+        catch
+        {
         }
     }
 

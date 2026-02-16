@@ -38,5 +38,16 @@
     </div>
 
     <div class="hint-arrow" aria-hidden="true"></div>
+
+    <script>
+        if (window.chrome?.webview) {
+            window.chrome.webview.addEventListener('message', (event) => {
+                const data = event?.data;
+                if (!data || data.type !== 'addServerClicked') return;
+                const arrow = document.querySelector('.hint-arrow');
+                if (arrow) arrow.style.display = 'none';
+            });
+        }
+    </script>
 </body>
 </html>
