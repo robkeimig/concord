@@ -7,4 +7,5 @@ public class Server
     public string IpAddress { get; set; }
     public byte[] LogoAsset { get; set; }
     public string LogoAssetContentType { get; set; }
+    public string? AccessToken { get; set; }
 }

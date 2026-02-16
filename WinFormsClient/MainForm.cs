@@ -49,7 +49,7 @@ public partial class MainForm : Form
             ? Configuration.Servers.First(x => x.Id == Configuration.LastServerId.Value)
             : Configuration.Servers.First();
 
-        MainWebView.Source = ServerUri.GetBaseUri(server.IpAddress);
+        MainWebView.Source = ServerUri.GetUri(server.IpAddress, "client");
     }
 
     private async void EnsureWebView()

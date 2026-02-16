@@ -16,6 +16,18 @@ namespace Concord.WinForms
 
         private record ServerInfo(bool RequiresInvitation);
 
+        private record CreateAccountRequest(
+            string? InviteCode,
+            ProfileDetails Profile
+        );
+
+        private record ProfileDetails(
+            string Name,
+            string? PrimaryColor
+        );
+
+        private record CreateAccountResponse(string AccessToken);
+
         public AddServerForm(CoreWebView2Environment webView2Environment, Configuration configuration)
         {
             WebView2Environment = webView2Environment ?? throw new ArgumentNullException(nameof(webView2Environment));
@@ -134,6 +146,7 @@ namespace Concord.WinForms
                     var ipAddress = GetPropertyOrDefault(payload, "ipAddress", p2 => p2.GetString() ?? string.Empty)?.Trim();
                     var invitationToken = GetPropertyOrDefault(payload, "invitationToken", p2 => p2.GetString() ?? string.Empty)?.Trim();
                     var name = GetPropertyOrDefault(payload, "name", p2 => p2.GetString() ?? string.Empty)?.Trim();
+                    var primaryColor = GetPropertyOrDefault(payload, "primaryColor", p2 => p2.GetString() ?? string.Empty)?.Trim();
 
                     if (string.IsNullOrWhiteSpace(ipAddress))
                         ipAddress = PendingIpAddress;
@@ -191,8 +204,8 @@ namespace Concord.WinForms
                         }
                     }
 
-                    var accepted = await CreateOrJoinAsync(ipAddress, invitationToken ?? string.Empty, name);
-                    if (!accepted)
+                    var accessToken = await CreateAccountAsync(ipAddress, invitationToken ?? string.Empty, name, primaryColor);
+                    if (string.IsNullOrWhiteSpace(accessToken))
                     {
                         PostJsonToWebView(new
                         {
@@ -206,6 +219,7 @@ namespace Concord.WinForms
                     {
                         Name = name,
                         IpAddress = ipAddress,
+                        AccessToken = accessToken,
                     };
 
                     Configuration.Servers.Add(server);
@@ -247,8 +261,6 @@ namespace Concord.WinForms
             {
                 using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(10) };
                 var uri = ServerUri.GetUri(ipAddress, "ServerInfo");
-                var https = new Uri($"https://{ipAddress}/ServerInfo");
-                var httpUrl = new Uri($"http://{ipAddress}/ServerInfo");
                 var serverInfo = await http.GetFromJsonAsync<ServerInfo>(uri);
                 if (serverInfo is not null)
                     return serverInfo;
@@ -260,11 +272,35 @@ namespace Concord.WinForms
             }
         }
 
+        private static async Task<string?> CreateAccountAsync(string ipAddress, string inviteCode, string name, string? primaryColor)
+        {
+            try
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(15) };
+
+                var request = new CreateAccountRequest(
+                    InviteCode: string.IsNullOrWhiteSpace(inviteCode) ? null : inviteCode,
+                    Profile: new ProfileDetails(
+                        Name: name,
+                        PrimaryColor: string.IsNullOrWhiteSpace(primaryColor) ? null : primaryColor
+                    )
+                );
+
+                var res = await http.PostAsJsonAsync(ServerUri.GetUri(ipAddress, "CreateAccount"), request, new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                if (!res.IsSuccessStatusCode)
+                    return null;
+
+                var body = await res.Content.ReadFromJsonAsync<CreateAccountResponse>(new JsonSerializerOptions(JsonSerializerDefaults.Web));
+                return body?.AccessToken;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
         // Stubs: host should call server endpoints. For now keep in client.
         private static Task<bool> ValidateInvitationAsync(string ipAddress, string invitationToken, string name)
-            => Task.FromResult(true);
-
-        private static Task<bool> CreateOrJoinAsync(string ipAddress, string invitationToken, string name)
             => Task.FromResult(true);
 
         private void HandleWebViewNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
