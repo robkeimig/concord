@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Add Server</title>
+
+    <link rel="stylesheet" href="style.css" />
+
+    <style>
+        /* Page-specific typography tweaks */
+        h1 {
+            font-size: 1.6rem;
+        }
+
+        p {
+            margin: 0.75rem 0 1.25rem;
+        }
+
+        .step {
+            display: none;
+        }
+
+        .step.active {
+            display: block;
+        }
+
+        .header-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+        }
+
+        .icon-btn {
+            border: 0;
+            background: transparent;
+            color: inherit;
+            font-size: 1.25rem;
+            line-height: 1;
+            width: 2.25rem;
+            height: 2.25rem;
+            border-radius: 0.5rem;
+            cursor: pointer;
+        }
+
+        .icon-btn:hover {
+            background: rgba(0,0,0,0.06);
+        }
+
+        /* Step 1 actions (match Settings: cancel left w/ red border, validate right) */
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 12px;
+        }
+
+        .btn {
+            padding: 8px 12px;
+            border-radius: 10px;
+            border: 2px solid transparent;
+            cursor: pointer;
+            font-weight: 600;
+            letter-spacing: .01em;
+        }
+
+        .btn:disabled { opacity: .65; cursor: not-allowed; }
+
+        .btn-cancel {
+            border-color: #cf222e;
+            background: #000;
+            color: #fff;
+            margin-right: auto;
+        }
+
+        .btn-primary {
+            border-color: transparent;
+            margin-left: auto;
+        }
+
+        body {
+            background: transparent;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="card card-left">
+        <div class="header-row">
+            <h1>Add a server</h1>
+            <!-- If you later add a header close button, give it id="closeBtn" -->
+        </div>
+        <p id="subtitle">Enter the server IP address.</p>
+
+        <div id="step1" class="step active" aria-label="Server IP">
+            <form id="ipForm">
+                <label for="ipAddress">IP address</label>
+                <input id="ipAddress" name="ipAddress" type="text" inputmode="decimal" placeholder="192.168.1.50" autocomplete="off" required />
+
+                <div id="error1" class="error" role="alert"></div>
+
+                <div class="actions">
+                    <button id="cancelBtn" class="btn btn-cancel" type="button">Cancel</button>
+                    <button id="nextBtn" class="btn btn-primary primary" type="submit">Next</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="step2" class="step" aria-label="Invitation token">
+            <form id="inviteForm">
+                <label for="invitationToken">Invitation token</label>
+                <input id="invitationToken" name="invitationToken" type="text" placeholder="XXXX-XXXX-XXXX" autocomplete="off" required />
+
+                <div id="errorInvite" class="error" role="alert"></div>
+
+                <div class="row">
+                    <button id="backBtn" type="button">Back</button>
+                    <button id="inviteNextBtn" class="primary" type="submit">Next</button>
+                </div>
+            </form>
+        </div>
+
+        <div id="step3" class="step" aria-label="Create member account">
+            <form id="acceptForm">
+                <label for="memberName">Your name</label>
+                <input id="memberName" name="memberName" type="text" placeholder="Your name" autocomplete="off" required />
+
+                <label for="primaryColor">Preferred color</label>
+                <input id="primaryColor" name="primaryColor" type="color" value="#4f46e5" aria-label="Preferred color" />
+
+                <div id="error2" class="error" role="alert"></div>
+                <div id="success2" class="success" role="status"></div>
+
+                <div class="row">
+                    <button id="profileBackBtn" type="button">Back</button>
+                    <button id="acceptBtn" class="primary" type="submit">Create account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const subtitle = document.getElementById('subtitle');
+        const cancelBtn = document.getElementById('cancelBtn');
+
+        const closeBtn = document.getElementById('closeBtn');
+
+        const ipForm = document.getElementById('ipForm');
+        const ipAddress = document.getElementById('ipAddress');
+        const nextBtn = document.getElementById('nextBtn');
+        const error1 = document.getElementById('error1');
+
+        const inviteForm = document.getElementById('inviteForm');
+        const invitationToken = document.getElementById('invitationToken');
+        const inviteNextBtn = document.getElementById('inviteNextBtn');
+        const errorInvite = document.getElementById('errorInvite');
+        const backBtn = document.getElementById('backBtn');
+
+        const acceptForm = document.getElementById('acceptForm');
+        const memberName = document.getElementById('memberName');
+        const primaryColor = document.getElementById('primaryColor');
+        const acceptBtn = document.getElementById('acceptBtn');
+        const profileBackBtn = document.getElementById('profileBackBtn');
+        const error2 = document.getElementById('error2');
+        const success2 = document.getElementById('success2');
+
+        let requiresInvitation = null;
+        let pendingServerInfoRequest = false;
+
+        function setStep1Busy(isBusy) {
+            pendingServerInfoRequest = !!isBusy;
+            nextBtn.disabled = pendingServerInfoRequest;
+            ipAddress.disabled = pendingServerInfoRequest;
+        }
+
+        function hostAvailable() {
+            return !!(window.chrome && window.chrome.webview);
+        }
+
+        function requestClose() {
+            if (!hostAvailable()) return;
+            window.chrome.webview.postMessage({ type: 'addServer/cancel' });
+        }
+
+        function show(el) { el.classList.add('active'); }
+        function hide(el) { el.classList.remove('active'); }
+
+        function showError(target, message) {
+            target.textContent = message || '';
+            target.style.display = message ? 'block' : 'none';
+        }
+
+        function showSuccess(message) {
+            success2.textContent = message || '';
+            success2.style.display = message ? 'block' : 'none';
+        }
+
+        function isStandardHost(host) {
+            const value = (host || '').trim();
+            if (!value) return false;
+            if (value.includes('://')) return false;
+            if (value.includes(':')) return false;
+            return true;
+        }
+
+        function goToStep1() {
+            show(step1);
+            hide(step2);
+            hide(step3);
+            subtitle.textContent = 'Enter the server IP address.';
+            showError(error1, '');
+            showError(errorInvite, '');
+            showError(error2, '');
+            showSuccess('');
+        }
+
+        function goToInviteStep() {
+            hide(step1);
+            show(step2);
+            hide(step3);
+            subtitle.textContent = 'Enter the invitation token.';
+            invitationToken.focus();
+        }
+
+        function goToProfileStep() {
+            hide(step1);
+            hide(step2);
+            show(step3);
+            subtitle.textContent = 'Create your account.';
+            memberName.focus();
+        }
+
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => requestClose());
+        }
+        cancelBtn.addEventListener('click', () => requestClose());
+
+        document.addEventListener('keydown', (ev) => {
+            if (ev.key === 'Escape') {
+                ev.preventDefault();
+                requestClose();
+            }
+        });
+
+        ipForm.addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            showError(error1, '');
+
+            const ip = (ipAddress.value || '').trim();
+            if (!ip) {
+                showError(error1, 'Please enter an IP address.');
+                ipAddress.focus();
+                return;
+            }
+            if (!isStandardHost(ip)) {
+                showError(error1, 'Please enter a server IP address without a port.');
+                ipAddress.focus();
+                return;
+            }
+            if (!hostAvailable()) {
+                showError(error1, 'This page must be hosted in the desktop client.');
+                return;
+            }
+
+            setStep1Busy(true);
+            window.chrome.webview.postMessage({ type: 'addServer/ip', payload: { ipAddress: ip } });
+        });
+
+        backBtn.addEventListener('click', () => {
+            goToStep1();
+        });
+
+        inviteForm.addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            showError(errorInvite, '');
+
+            const token = (invitationToken.value || '').trim();
+            if (!token) {
+                showError(errorInvite, 'Please enter an invitation token.');
+                invitationToken.focus();
+                return;
+            }
+            goToProfileStep();
+        });
+
+        profileBackBtn.addEventListener('click', () => {
+            if (requiresInvitation) {
+                goToInviteStep();
+            } else {
+                goToStep1();
+            }
+        });
+
+        acceptForm.addEventListener('submit', (ev) => {
+            ev.preventDefault();
+            showError(error2, '');
+            showSuccess('');
+
+            const name = (memberName.value || '').trim();
+            const color = (primaryColor.value || '').trim();
+            const ip = (ipAddress.value || '').trim();
+            const token = (invitationToken.value || '').trim();
+
+            if (!name) {
+                showError(error2, 'Please enter your name.');
+                memberName.focus();
+                return;
+            }
+            if (!hostAvailable()) {
+                showError(error2, 'This page must be hosted in the desktop client.');
+                return;
+            }
+
+            acceptBtn.disabled = true;
+            window.chrome.webview.postMessage({
+                type: 'addServer/createMember',
+                payload: {
+                    ipAddress: ip,
+                    invitationToken: token,
+                    name,
+                    primaryColor: color
+                }
+            });
+
+            setTimeout(() => { acceptBtn.disabled = false; }, 1000);
+        });
+
+        if (hostAvailable()) {
+            window.chrome.webview.addEventListener('message', (event) => {
+                const msg = event.data || {};
+                const type = (msg.type || '').toLowerCase();
+                const payload = msg.payload || {};
+
+                if (type === 'addserver/serverinfo') {
+                    // Host responded (success or failure) -> unlock step 1 UI.
+                    setStep1Busy(false);
+
+                    if (payload && payload.ok === false) {
+                        // Bad IP / server unreachable -> show error on step 1
+                        goToStep1();
+                        showError(error1, payload.message || 'Unable to reach server.');
+                        ipAddress.focus();
+                        return;
+                    }
+
+                    requiresInvitation = !!payload.requiresInvitation;
+                    if (requiresInvitation) {
+                        goToInviteStep();
+                    } else {
+                        goToProfileStep();
+                    }
+                 }
+
+                if (type === 'addserver/membercreated') {
+                    if (payload.ok) {
+                        showSuccess('Account created. Connecting...');
+                    } else {
+                        showError(error2, payload.message || 'Failed to create account.');
+                    }
+                }
+            });
+         }
+
+        // Initial state
+        nextBtn.disabled = false;
+    </script>
+</body>
+</html>

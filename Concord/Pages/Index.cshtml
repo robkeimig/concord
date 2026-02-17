@@ -1,0 +1,24 @@
+﻿@page
+@using Concord.Pages
+@model IndexModel
+@{
+    ViewData["Title"] = "Home";
+}
+
+<!DOCTYPE html>
+<html>
+<head>
+    <title>@ViewData["Title"]</title>
+</head>
+<body>
+    <p>(customizable MOTD below)</p>
+    <h1>Welcome to [Server Name]!</h1>
+    <p>This is a public, read-only copy of the server.</p>
+    <p>If you would like to participate in this community, <a href="#">grab the official client</a> and add this server. Use IP address: <b>@Model.PublicIp</b>. Note that an invitation code may be required.</p>
+    <pre>
+        TODO: This message is not visible if the server is not configured for public use.
+        TODO: Search box.
+        TODO: Links into text channels and members info.
+    </pre>
+</body>
+</html>

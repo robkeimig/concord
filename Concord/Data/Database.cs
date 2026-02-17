@@ -1,0 +1,80 @@
+﻿using Dapper;
+using Microsoft.Data.Sqlite;
+
+namespace Concord.Data
+{
+    public class Database
+    {
+        public const string Name = "concord.db";
+        public const int Version = 1;
+
+        public Database()
+        {
+            using var sql = new SqliteConnection(ConnectionString);
+            var version = sql.ExecuteScalar<long>("PRAGMA user_version");
+
+            for (long x = version; x < Version; x++)
+            {
+                Migrate(sql, x);
+            }
+        }
+
+        public SqliteConnection Connection => new SqliteConnection(ConnectionString);
+
+
+        string ConnectionString => new SqliteConnectionStringBuilder()
+        {
+            DataSource = Name,
+            Pooling = true,
+        }.ConnectionString;
+
+        private void Migrate(SqliteConnection sql, long x)
+        {
+            switch (x)
+            {
+                case 0:
+                    MigrateFrom0(sql);
+                    break;
+                default:
+                    throw new NotImplementedException();
+            }
+        }
+
+        private void MigrateFrom0(SqliteConnection sql)
+        {
+            sql.Execute($@"
+PRAGMA journal_mode = WAL;
+PRAGMA user_version = 1;
+
+CREATE TABLE {UsersTable.TableName} (
+    [{nameof(UsersTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(UsersTable.DisplayName)}] TEXT,
+    [{nameof(UsersTable.CreatedUnixTimestamp)}] INTEGER,
+    [{nameof(UsersTable.AccessedUnixTimestamp)}] INTEGER,
+    [{nameof(UsersTable.PrimaryColor)}] TEXT,
+    [{nameof(UsersTable.AccessToken)}] BINARY);
+
+CREATE TABLE {ChannelsTable.TableName} (
+    [{nameof(ChannelsTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(ChannelsTable.DisplayName)}] TEXT,
+    [{nameof(ChannelsTable.Type)}] INTEGER,
+    [{nameof(ChannelsTable.CreatedUnixTimestamp)}] INTEGER);
+
+CREATE TABLE {MessagesTable.TableName} (
+    [{nameof(MessagesTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(MessagesTable.AuthorUserId)}] INTEGER,
+    [{nameof(MessagesTable.ChannelId)}] INTEGER,
+    [{nameof(MessagesTable.Content)}] TEXT,
+    [{nameof(MessagesTable.CreatedUnixTimestamp)}] INTEGER,
+    [{nameof(MessagesTable.EditedUnixTimestamp)}] INTEGER);
+
+CREATE TABLE {InvitationsTable.TableName} (
+    [{nameof(InvitationsTable.Id)}] INTEGER PRIMARY KEY,
+    [{nameof(InvitationsTable.Code)}] TEXT,
+    [{nameof(InvitationsTable.CreatedUnixTimestamp)}] INTEGER,
+    [{nameof(InvitationsTable.IsPermanent)}] INTEGER);
+
+");
+        }
+    }
+}
