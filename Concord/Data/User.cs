@@ -1,5 +1,4 @@
-﻿using Concord.Services;
-using Dapper;
+﻿using Dapper;
 using Microsoft.Data.Sqlite;
 
 namespace Concord.Data;
@@ -27,6 +26,22 @@ public class UsersTable
 
 public static class UserDataExtensions
 {
+    public static async Task<User> GetUserAsync(this SqliteConnection sql, string accessToken)
+    {
+        var userRow = await sql.QueryFirstOrDefaultAsync<UsersTable>($@"
+            SELECT * FROM {UsersTable.TableName}
+            WHERE {nameof(UsersTable.AccessToken)} = @{nameof(UsersTable.AccessToken)}",
+            new
+            {
+                AccessToken = accessToken
+            });
+
+        if (userRow == null)
+            return null;
+
+        return Map(userRow);
+    }
+
     public static async Task BootstrapUsers(this SqliteConnection sql, string publicIp)
     {
         var userCount = sql.ExecuteScalar<long>($"SELECT COUNT(1) FROM {UsersTable.TableName};");
