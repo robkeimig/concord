@@ -1,5 +1,6 @@
 using Concord.WinForms;
 using Microsoft.Web.WebView2.Core;
+using System.Diagnostics;
 
 namespace WinFormsClient;
 
@@ -9,11 +10,13 @@ public partial class MainForm : Form
     Configuration Configuration;
     SettingsForm SettingsForm;
     AddServerForm AddServerForm;
+    HttpClient PingHttpClient;
 
     private ToolStripSeparator? ServerListSeparator;
 
     public MainForm()
     {
+        PingHttpClient = new HttpClient();
         InitializeComponent();
         LoadingPanel.BringToFront();
         Configuration = Configuration.Load();
@@ -107,6 +110,42 @@ public partial class MainForm : Form
         }
     }
 
+    private async Task<PingResult> GetPingResult(Server server)
+    {
+        PingHttpClient.Timeout = TimeSpan.FromSeconds(5);
+        PingHttpClient.DefaultRequestHeaders.Clear();
+        PingHttpClient.DefaultRequestHeaders.Add("Cookie", $"{Constants.AuthenticationTokenCookieName}={server.AccessToken}");
+
+        try
+        {
+            var stopwatch = Stopwatch.StartNew();
+            var response = await PingHttpClient.GetAsync(ServerUri.GetUri(server.IpAddress, "ping"));
+            stopwatch.Stop();
+
+            if (response.StatusCode == System.Net.HttpStatusCode.Unauthorized)
+            {
+                return new PingResult
+                {
+                    UnauthenticatedError = true,
+                    RoundTripTime = stopwatch.Elapsed
+                };
+            }
+            else if (response.StatusCode == System.Net.HttpStatusCode.OK)
+            {
+                return new PingResult
+                {
+                    RoundTripTime = stopwatch.Elapsed
+                };
+            }
+        }
+        catch { }
+
+        return new PingResult
+        {
+            ConnectionError = true,
+        };
+    }
+
     private void NavigateToCurrentServer()
     {
         if (Configuration.Servers.Count == 0)
@@ -128,6 +167,18 @@ public partial class MainForm : Form
     {
         Configuration.LastServerId = server.Id;
         Configuration.SaveChanges();
+        var pingResult = await GetPingResult(server);
+
+        if (pingResult.ConnectionError)
+        {
+            MessageBox.Show(this, $"Unable to connect to server at {server.IpAddress}. Please check the address and your network connection.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            return;
+        }
+        else if (pingResult.UnauthenticatedError)
+        {
+            MessageBox.Show(this, $"Access token for server at {server.IpAddress} is invalid or expired. Please update the server configuration.", "Authentication Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            return;
+        }
 
         var destination = ServerUri.GetUri(server.IpAddress, "client");
         var cm = MainWebView.CoreWebView2.CookieManager;
@@ -258,4 +309,11 @@ public partial class MainForm : Form
             SettingsForm.ShowDialog(this);
         }
     }
+}
+
+internal class PingResult
+{
+    public bool ConnectionError { get; set; }
+    public bool UnauthenticatedError { get; set; }
+    public TimeSpan? RoundTripTime { get; set; }
 }
