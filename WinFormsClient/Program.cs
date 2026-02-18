@@ -1,4 +1,6 @@
-namespace WinFormsClient
+using WinFormsClient;
+
+namespace Concord.WinForms
 {
     internal static class Program
     {
@@ -11,7 +13,7 @@ namespace WinFormsClient
             // To customize application configuration such as set high DPI settings or default font,
             // see https://aka.ms/applicationconfiguration.
             ApplicationConfiguration.Initialize();
-            Application.Run(new MainForm());
+            Application.Run(new ConcordContext());
         }
     }
 }

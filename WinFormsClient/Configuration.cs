@@ -1,4 +1,4 @@
-﻿namespace WinFormsClient;
+﻿namespace Concord.WinForms;
 
 using System.Text.Json;
 using System.Text.Json.Serialization;

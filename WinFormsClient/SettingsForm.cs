@@ -1,5 +1,4 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using WinFormsClient;
 using System.Text.Json;
 
 namespace Concord.WinForms

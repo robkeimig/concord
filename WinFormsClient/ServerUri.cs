@@ -1,4 +1,4 @@
-namespace WinFormsClient;
+namespace Concord.WinForms;
 
 internal static class ServerUri
 {
