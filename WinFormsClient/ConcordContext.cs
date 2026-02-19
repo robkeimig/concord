@@ -1,6 +1,4 @@
-﻿using WinFormsClient;
-
-namespace Concord.WinForms;
+﻿namespace Concord.WinForms;
 
 public class ConcordContext : ApplicationContext
 {
@@ -21,8 +19,8 @@ public class ConcordContext : ApplicationContext
 
     private async void InitializeAsync()
     {
-        var mainForm = new MainForm();
-        MainForm = mainForm;
-        mainForm.Show();
+        //var mainForm = new MainForm();
+        //MainForm = mainForm;
+        //mainForm.Show();
     }
 }

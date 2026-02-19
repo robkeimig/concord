@@ -1,18 +1,23 @@
-﻿using System;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Text;
-using System.Windows.Forms;
+﻿namespace Concord.WinForms;
 
-namespace Concord.WinForms
+public partial class LoadingForm : Form
 {
-    public partial class LoadingForm : Form
+    public LoadingForm()
     {
-        public LoadingForm()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
+        
+        FormBorderStyle = FormBorderStyle.None;
+        StartPosition = FormStartPosition.CenterScreen;
+        TopMost = true;
+        this.Width = 576;
+        this.Height = 700;
+        this.Left = (Screen.PrimaryScreen.Bounds.Width - this.Width) / 2;
+        this.Top = (Screen.PrimaryScreen.Bounds.Height - this.Height) / 2;
+        
+        string videoPath = Path.Combine(Application.StartupPath, "Assets", "LoadingLoop.mp4");
+        LoadingLoopPlayer.URL = videoPath;
+        LoadingLoopPlayer.settings.setMode("loop", true);
+        LoadingLoopPlayer.uiMode = "none";
+        LoadingLoopPlayer.Ctlcontrols.play();
     }
 }

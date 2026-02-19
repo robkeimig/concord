@@ -28,12 +28,35 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
-            this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(800, 450);
-            this.Text = "LoadingForm";
+            System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(LoadingForm));
+            LoadingLoopPlayer = new AxWMPLib.AxWindowsMediaPlayer();
+            ((System.ComponentModel.ISupportInitialize)LoadingLoopPlayer).BeginInit();
+            SuspendLayout();
+            // 
+            // LoadingLoopPlayer
+            // 
+            LoadingLoopPlayer.Dock = DockStyle.Fill;
+            LoadingLoopPlayer.Enabled = true;
+            LoadingLoopPlayer.Location = new Point(0, 0);
+            LoadingLoopPlayer.Name = "LoadingLoopPlayer";
+            LoadingLoopPlayer.OcxState = (AxHost.State)resources.GetObject("LoadingLoopPlayer.OcxState");
+            LoadingLoopPlayer.Size = new Size(800, 450);
+            LoadingLoopPlayer.TabIndex = 0;
+            // 
+            // LoadingForm
+            // 
+            AutoScaleDimensions = new SizeF(7F, 15F);
+            AutoScaleMode = AutoScaleMode.Font;
+            ClientSize = new Size(800, 450);
+            Controls.Add(LoadingLoopPlayer);
+            Name = "LoadingForm";
+            Text = "LoadingForm";
+            ((System.ComponentModel.ISupportInitialize)LoadingLoopPlayer).EndInit();
+            ResumeLayout(false);
         }
 
         #endregion
+
+        private AxWMPLib.AxWindowsMediaPlayer LoadingLoopPlayer;
     }
 }
