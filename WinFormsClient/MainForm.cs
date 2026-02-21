@@ -1,5 +1,6 @@
 using Concord.WinForms;
 using Microsoft.Web.WebView2.Core;
+using System;
 using System.Diagnostics;
 
 namespace WinFormsClient;
@@ -11,20 +12,18 @@ public partial class MainForm : Form
     SettingsForm SettingsForm;
     AddServerForm AddServerForm;
     HttpClient PingHttpClient;
-
+    CoreWebView2Environment WebViewEnvironment;
     private ToolStripSeparator? ServerListSeparator;
 
-    public MainForm()
+    public MainForm(CoreWebView2Environment webViewEnvironment, Configuration configuration)
     {
+        WebViewEnvironment = webViewEnvironment;
         PingHttpClient = new HttpClient();
         InitializeComponent();
         LoadingPanel.BringToFront();
-        Configuration = Configuration.Load();
+        Configuration = configuration; 
         AddNewServerButton.Click += (_, _) => ShowAddServerDialog();
-
         RefreshServerListMenu();
-
-        EnsureWebView();
     }
 
     private sealed class StatusStripScope : IDisposable
@@ -108,6 +107,20 @@ public partial class MainForm : Form
 
             _overlayPanel.Visible = _overlayPanelWasVisible;
         }
+    }
+
+    internal async Task InitializeAsync()
+    {
+        await MainWebView.EnsureCoreWebView2Async(WebViewEnvironment);
+        MainWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
+
+        MainWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+            hostName: "app",
+            folderPath: Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+            accessKind: CoreWebView2HostResourceAccessKind.Allow
+        );
+
+        NavigateToCurrentServer();
     }
 
     private async Task<PingResult> GetPingResult(Server server)
@@ -234,30 +247,6 @@ public partial class MainForm : Form
         {
             ServerListSeparator = null;
         }
-    }
-
-    private async void EnsureWebView()
-    {
-        var environment = await CoreWebView2Environment.CreateAsync(
-           userDataFolder: Path.Combine(
-               Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-               "ConcordWebView"
-           )
-        );
-
-        SettingsForm = new SettingsForm(environment, Configuration);
-        AddServerForm = new AddServerForm(environment, Configuration);
-
-        await MainWebView.EnsureCoreWebView2Async(environment);
-        MainWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
-
-        MainWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-            hostName: "app",
-            folderPath: Path.Combine(AppContext.BaseDirectory, "wwwroot"),
-            accessKind: CoreWebView2HostResourceAccessKind.Allow
-        );
-
-        NavigateToCurrentServer();
     }
 
     private void HandleWebViewNavigationCompleted(object? sender, CoreWebView2NavigationCompletedEventArgs e)
