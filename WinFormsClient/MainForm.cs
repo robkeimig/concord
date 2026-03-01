@@ -14,6 +14,7 @@ public partial class MainForm : Form
     HttpClient PingHttpClient;
     CoreWebView2Environment WebViewEnvironment;
     private ToolStripSeparator? ServerListSeparator;
+    TaskCompletionSource NavigationTaskCompletionSource;
 
     public MainForm(CoreWebView2Environment webViewEnvironment, Configuration configuration)
     {
@@ -111,6 +112,7 @@ public partial class MainForm : Form
 
     internal async Task InitializeAsync()
     {
+        NavigationTaskCompletionSource = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         await MainWebView.EnsureCoreWebView2Async(WebViewEnvironment);
         MainWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
 
@@ -121,6 +123,7 @@ public partial class MainForm : Form
         );
 
         NavigateToCurrentServer();
+        await NavigationTaskCompletionSource.Task;
     }
 
     private async Task<PingResult> GetPingResult(Server server)
@@ -184,11 +187,13 @@ public partial class MainForm : Form
 
         if (pingResult.ConnectionError)
         {
+            NavigationTaskCompletionSource?.TrySetResult();
             MessageBox.Show(this, $"Unable to connect to server at {server.IpAddress}. Please check the address and your network connection.", "Connection Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             return;
         }
         else if (pingResult.UnauthenticatedError)
         {
+            NavigationTaskCompletionSource?.TrySetResult();
             MessageBox.Show(this, $"Access token for server at {server.IpAddress} is invalid or expired. Please update the server configuration.", "Authentication Error", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             return;
         }
@@ -257,6 +262,8 @@ public partial class MainForm : Form
         {
             Initialized = true;
         }
+
+        NavigationTaskCompletionSource?.TrySetResult();
     }
 
     private void ShowAddServerDialog()
