@@ -41,6 +41,7 @@
             LoadingLayoutPanel = new TableLayoutPanel();
             LoadingProgressBar = new ProgressBar();
             LoadingLabel = new Label();
+            StatusLabel = new ToolStripStatusLabel();
             MainPanel.SuspendLayout();
             MainLayoutPanel.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)MainWebView).BeginInit();
@@ -87,7 +88,7 @@
             // 
             // MainStatusStrip
             // 
-            MainStatusStrip.Items.AddRange(new ToolStripItem[] { ServerDropDownButton, SettingsButton });
+            MainStatusStrip.Items.AddRange(new ToolStripItem[] { ServerDropDownButton, SettingsButton, StatusLabel });
             MainStatusStrip.Location = new Point(0, 740);
             MainStatusStrip.Name = "MainStatusStrip";
             MainStatusStrip.Size = new Size(1301, 22);
@@ -106,7 +107,7 @@
             // AddNewServerButton
             // 
             AddNewServerButton.Name = "AddNewServerButton";
-            AddNewServerButton.Size = new Size(180, 22);
+            AddNewServerButton.Size = new Size(167, 22);
             AddNewServerButton.Text = "Add New Server...";
             // 
             // SettingsButton
@@ -181,14 +182,21 @@
             LoadingLabel.TabIndex = 1;
             LoadingLabel.Text = "Loading...";
             // 
+            // StatusLabel
+            // 
+            StatusLabel.Name = "StatusLabel";
+            StatusLabel.Size = new Size(1129, 17);
+            StatusLabel.Spring = true;
+            StatusLabel.Text = "StatusLabel";
+            // 
             // MainForm
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
             ClientSize = new Size(1301, 762);
-            Controls.Add(MainOverlayPanel);
             Controls.Add(MainPanel);
             Controls.Add(LoadingPanel);
+            Controls.Add(MainOverlayPanel);
             Name = "MainForm";
             Text = "Concord";
             MainPanel.ResumeLayout(false);
@@ -217,5 +225,6 @@
         private Label LoadingLabel;
         private ToolStripDropDownButton SettingsButton;
         private Panel MainOverlayPanel;
+        private ToolStripStatusLabel StatusLabel;
     }
 }

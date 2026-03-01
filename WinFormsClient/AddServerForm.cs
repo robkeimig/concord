@@ -8,7 +8,7 @@ namespace Concord.WinForms
     public partial class AddServerForm : Form
     {
         private bool Initialized;
-        private readonly CoreWebView2Environment WebView2Environment;
+        private readonly CoreWebView2Environment WebViewEnvironment;
         private readonly Configuration Configuration;
 
         private string? PendingIpAddress;
@@ -30,7 +30,7 @@ namespace Concord.WinForms
 
         public AddServerForm(CoreWebView2Environment webView2Environment, Configuration configuration)
         {
-            WebView2Environment = webView2Environment ?? throw new ArgumentNullException(nameof(webView2Environment));
+            WebViewEnvironment = webView2Environment ?? throw new ArgumentNullException(nameof(webView2Environment));
             Configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
 
             InitializeComponent();
@@ -46,8 +46,6 @@ namespace Concord.WinForms
 
             LoadingPanel.BringToFront();
             LoadingPanel.Visible = true;
-
-            EnsureWebView();
         }
 
         private void CancelAndClose()
@@ -56,24 +54,6 @@ namespace Concord.WinForms
             PendingRequiresInvitation = null;
             DialogResult = DialogResult.Cancel;
             Close();
-        }
-
-        private async void EnsureWebView()
-        {
-            await AddServerWebView.EnsureCoreWebView2Async(WebView2Environment);
-            AddServerWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
-            AddServerWebView.CoreWebView2.WebMessageReceived += HandleWebViewMessageReceived;
-            AddServerWebView.DefaultBackgroundColor = Color.Transparent;
-
-            AddServerWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                hostName: "app",
-                folderPath: Path.Combine(AppContext.BaseDirectory, "wwwroot"),
-                accessKind: CoreWebView2HostResourceAccessKind.Allow
-            );
-
-            PendingIpAddress = null;
-            PendingRequiresInvitation = null;
-            AddServerWebView.Source = new Uri("https://app/AddServer.html");
         }
 
         private void PostJsonToWebView(object message)
@@ -311,6 +291,24 @@ namespace Concord.WinForms
             {
                 Initialized = true;
             }
+        }
+
+        internal async Task InitializeAsync()
+        {
+            await AddServerWebView.EnsureCoreWebView2Async(WebViewEnvironment);
+            AddServerWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
+            AddServerWebView.CoreWebView2.WebMessageReceived += HandleWebViewMessageReceived;
+            AddServerWebView.DefaultBackgroundColor = Color.Transparent;
+
+            AddServerWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                hostName: "app",
+                folderPath: Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+                accessKind: CoreWebView2HostResourceAccessKind.Allow
+            );
+
+            PendingIpAddress = null;
+            PendingRequiresInvitation = null;
+            AddServerWebView.Source = new Uri("https://app/AddServer.html");
         }
     }
 }

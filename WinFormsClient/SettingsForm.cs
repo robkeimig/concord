@@ -1,5 +1,4 @@
 ﻿using Microsoft.Web.WebView2.Core;
-using WinFormsClient;
 using System.Text.Json;
 
 namespace Concord.WinForms
@@ -28,24 +27,8 @@ namespace Concord.WinForms
 
             LoadingPanel.BringToFront();
             LoadingPanel.Visible = true;
-            EnsureWebView();
         }
 
-        private async void EnsureWebView()
-        {
-            await SettingsWebView.EnsureCoreWebView2Async(WebView2Environment);
-            SettingsWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
-            SettingsWebView.CoreWebView2.WebMessageReceived += HandleWebViewMessageReceived;
-            SettingsWebView.DefaultBackgroundColor = Color.Transparent;
-
-            SettingsWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
-                hostName: "app",
-                folderPath: Path.Combine(AppContext.BaseDirectory, "wwwroot"),
-                accessKind: CoreWebView2HostResourceAccessKind.Allow
-            );
-            
-            SettingsWebView.Source = new Uri("https://app/Settings.html");
-        }
 
         private void PostJsonToWebView(object message)
         {
@@ -178,6 +161,22 @@ namespace Concord.WinForms
                 Initialized = true;
                 PostJsonToWebView(new { type = "settings/data", payload = CreateSettingsPayload() });
             }
+        }
+
+        internal async Task InitializeAsync()
+        {
+            await SettingsWebView.EnsureCoreWebView2Async(WebView2Environment);
+            SettingsWebView.NavigationCompleted += HandleWebViewNavigationCompleted;
+            SettingsWebView.CoreWebView2.WebMessageReceived += HandleWebViewMessageReceived;
+            SettingsWebView.DefaultBackgroundColor = Color.Transparent;
+
+            SettingsWebView.CoreWebView2.SetVirtualHostNameToFolderMapping(
+                hostName: "app",
+                folderPath: Path.Combine(AppContext.BaseDirectory, "wwwroot"),
+                accessKind: CoreWebView2HostResourceAccessKind.Allow
+            );
+            
+            SettingsWebView.Source = new Uri("https://app/Settings.html");
         }
     }
 }

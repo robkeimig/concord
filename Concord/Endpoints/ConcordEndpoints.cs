@@ -1,4 +1,5 @@
-﻿using System.Collections.Concurrent;
+﻿using Concord.Data;
+using System.Collections.Concurrent;
 using System.Net.WebSockets;
 using System.Text;
 using System.Text.Json;
@@ -137,6 +138,22 @@ public static class ConcordEndpoints
             var bytes = Encoding.UTF8.GetBytes(json);
             await ws.SendAsync(bytes, WebSocketMessageType.Text, true, ct);
         }
+
+        endpoints.Map("/ping", async (HttpContext context, Database database) =>
+        {
+            var authenticationToken = context.Request.Cookies[Constants.AuthenticationTokenCookieName];
+            using var connection = database.Connection;
+            var user = await connection.GetUserAsync(authenticationToken);
+
+            if (user == null)
+            {
+                context.Response.StatusCode = StatusCodes.Status401Unauthorized;
+                await context.Response.WriteAsync("Unauthorized");
+                return;
+            }
+
+            context.Response.StatusCode = StatusCodes.Status200OK;
+        });
 
         endpoints.Map("/ws", async context =>
         {
